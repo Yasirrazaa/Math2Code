@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from math2code.data.competition import (
     dedup_by_latex,
     load_competition_train,
@@ -10,6 +12,7 @@ from math2code.data.competition import (
 from math2code.schemas import MathCodePair
 
 
+@pytest.mark.slow
 def test_load_competition_train_shape(train_rows: list[dict]) -> None:
     pairs = load_competition_train()
     assert len(pairs) == 26846
@@ -25,6 +28,7 @@ def test_dedup_by_latex() -> None:
     assert [p.task_id for p in out] == ["a", "c"]
 
 
+@pytest.mark.slow
 def test_resample_test_cases_recomputes_outputs() -> None:
     pairs = load_competition_train()
     geo = next(p for p in pairs if p.equation_type == "Geometry")
@@ -40,6 +44,7 @@ def test_resample_test_cases_recomputes_outputs() -> None:
     assert any(abs(a - b) > 1e-9 for a, b in zip(orig_vals, new_vals))
 
 
+@pytest.mark.slow
 def test_resample_deterministic_per_seed() -> None:
     pairs = load_competition_train()
     p = pairs[0]
@@ -49,6 +54,7 @@ def test_resample_deterministic_per_seed() -> None:
     assert a[0].output == b[0].output
 
 
+@pytest.mark.slow
 def test_real_row_json_roundtrip(train_rows: list[dict]) -> None:
     """Schema must roundtrip real competition rows (incl. nan domain)."""
     rows = train_rows

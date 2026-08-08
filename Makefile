@@ -43,6 +43,9 @@ bench-hf:
 baselines:
 	python -m math2code.evaluation.baselines --split data/split/test.json
 
+plots:
+	python scripts/plot_results.py --predictions $$(ls -t results/baseline_latex_parse_*.csv | head -1)
+
 analyze:
 	python scripts/analyze_results.py --split data/split/test.json --predictions $$(ls -t results/baseline_latex_parse_*.csv | head -1)
 

@@ -58,6 +58,7 @@ def test_from_competition_row_nan_domain() -> None:
     assert pair.equation_type == "derivative"
 
 
+@pytest.mark.slow
 def test_roundtrip_real_competition_row(train_rows: list[dict]) -> None:
     """A real row from data/train.json must parse cleanly."""
     rows = train_rows

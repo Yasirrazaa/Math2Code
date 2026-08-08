@@ -82,6 +82,9 @@ src/math2code/
 uv pip install -e ".[dev]"
 make splits      # rebuild frozen split from data/train.json
 make eval-gold   # gold solutions must score 1.0 on the test split
+make baselines   # zero-cost parse_latex + floor baselines (measured)
+make analyze     # per-equation-type breakdown of the latest baseline
+make plots       # regenerate the figures below
 make test        # 76 tests: metric, sandbox, oracle, rewards, runner, baselines, E2B
 ```
 
@@ -118,6 +121,8 @@ model money is spent; the LLM rows are filled by `evaluation/runner.py`:
 | Gold solutions (harness sanity) | **1.0000** | — |
 
 ### What the zero-cost baseline tells us
+
+![parse_latex baseline by type](docs/figures/parse_baseline_by_type.png)
 
 `parse_latex` solves **100%** of the algebraic slice (rational, diophantine,
 summation, exponential, multivariable, fractional, logrithmic, algebraic) but
