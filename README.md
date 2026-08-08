@@ -82,7 +82,7 @@ src/math2code/
 uv pip install -e ".[dev]"
 make splits      # rebuild frozen split from data/train.json
 make eval-gold   # gold solutions must score 1.0 on the test split
-make test        # 69 tests: metric, sandbox, oracle, rewards, runner, API
+make test        # 76 tests: metric, sandbox, oracle, rewards, runner, baselines, E2B
 ```
 
 ## Training + benchmarking (GPU / API budget)
