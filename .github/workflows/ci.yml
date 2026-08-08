@@ -2,31 +2,78 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install uv
         uses: astral-sh/setup-uv@v2
-        
+
       - name: Set up Python
         run: uv python install 3.10
-        
+
       - name: Install dependencies
-        run: uv pip install --system -e .[dev]
-        
-      - name: Run Ruff (Linting)
-        run: ruff check src/ tests/
-        
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Run Ruff (Lint + Format)
+        run: |
+          ruff check src/ tests/ scripts/
+          ruff format --check src/ tests/ scripts/
+
       - name: Run MyPy (Type Checking)
-        run: mypy src/ tests/
-        
-      # You can add pytest here once tests are written
-      # - name: Run Pytest
-      #   run: pytest tests/
+        run: mypy src/math2code tests
+
+      - name: Run Pytest
+        run: pytest tests/ -q
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+
+      - name: Set up Python
+        run: uv python install 3.10
+
+      - name: Verify package builds and installs
+        run: |
+          uv pip install --system --no-deps -e .
+          python -c "import math2code; print('math2code', math2code.__version__)"
+
+      - name: Docker build
+        run: docker build -t math2code:ci .
+
+  data-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+
+      - name: Set up Python
+        run: uv python install 3.10
+
+      - name: Install dependencies
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Verify split manifest (frozen test set integrity)
+        run: |
+          python - <<'EOF'
+          import json, hashlib
+          from pathlib import Path
+          m = json.loads(Path("data/split/manifest.json").read_text())
+          for name, digest in m["files"].items():
+              p = Path("data/split") / name
+              h = hashlib.sha256(p.read_bytes()).hexdigest()
+              assert h == digest, f"{name} checksum mismatch: {h} != {digest}"
+          print("split manifest OK:", m["n_train"], m["n_val"], m["n_test"])
+          EOF

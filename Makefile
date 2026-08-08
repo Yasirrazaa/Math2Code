@@ -1,26 +1,33 @@
-.PHONY: setup lint format typecheck test run-api run-ui docker-up clean
+.PHONY: setup setup-train lint format typecheck test test-quick splits eval-gold docker-up clean
 
 setup:
-	uv pip install --system -e .[dev]
+	uv pip install --system -e ".[dev]"
+
+setup-train:
+	uv pip install --system -e ".[dev,train]"
 
 format:
-	ruff format src/ tests/
-	ruff check --fix src/ tests/
+	ruff format src/ tests/ scripts/
+	ruff check --fix src/ tests/ scripts/
 
 lint:
-	ruff check src/ tests/
+	ruff check src/ tests/ scripts/
+	ruff format --check src/ tests/ scripts/
 
 typecheck:
-	mypy src/ tests/
+	mypy src/math2code tests
 
 test:
-	pytest tests/
+	pytest tests/ -q
 
-run-api:
-	uvicorn src.serve.api:app --reload --host 0.0.0.0 --port 8000
+test-quick:
+	pytest tests/ -q -m "not slow"
 
-run-ui:
-	python src/serve/app.py
+splits:
+	python scripts/make_splits.py
+
+eval-gold:
+	python -m math2code.evaluation.eval gold --split data/split/test.json --n 100
 
 docker-up:
 	docker compose up --build
@@ -29,3 +36,4 @@ clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
+	find . -type d -name ".pytest_cache" -exec rm -rf {} +

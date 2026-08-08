@@ -27,11 +27,12 @@ env/
 .env.*
 !.env.example
 
-# --- Data (large artifacts stay out of git; version via DVC/HF Hub) ---
-# Uncomment to stop tracking generated data in git:
-# data/raw/
-# data/processed/
-# outputs/
+# --- Data (large artifacts stay out of git; version via HF Hub) ---
+data/raw/
+data/processed/
+data/train.json
+outputs/
+results/*.scored.json
 
 # --- Training artifacts ---
 outputs/

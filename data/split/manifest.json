@@ -1,0 +1,12 @@
+{
+  "seed": 42,
+  "n_train": 22002,
+  "n_val": 397,
+  "n_test": 397,
+  "source": "data/train.json (bootcamp competition, deduped by latex)",
+  "files": {
+    "train.jsonl": "beffe03ec9f4876f69599c3629570e5bb9a791f387ac0a0be272333e08e236e4",
+    "val.json": "fb5a6eb45951764df9a4d38930683cb6d814ad2b6cceef839e8257b13beef956",
+    "test.json": "f93033d093c5853a0cc19925e7609848d930231b54390602ceefbdc6006f5803"
+  }
+}

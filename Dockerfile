@@ -1,23 +1,25 @@
-# Dockerfile
-FROM python:3.10-slim
+# --- Stage 1: build the wheel (validates packaging; not shipped) ---
+FROM python:3.11-slim AS builder
+RUN pip install --no-cache-dir uv build
+WORKDIR /build
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
+RUN python -m build --wheel -o /dist
+
+# --- Stage 2: runtime image ---
+FROM python:3.11-slim
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+
+# non-root user
+RUN useradd -m -u 1000 app && pip install --no-cache-dir uv
 
 WORKDIR /app
+COPY --from=builder /dist /dist
+RUN uv pip install --system --no-cache /dist/*.whl
 
-# Install uv for fast dependency management
-RUN pip install uv
+COPY src/ ./src/
 
-# Copy project configuration
-COPY pyproject.toml .
-
-# Install dependencies
-RUN uv pip install --system -e .
-
-# Copy source code
-COPY src/ src/
-
-# Expose ports for FastAPI (8000) and Gradio (8501)
-EXPOSE 8000
-EXPOSE 8501
-
-# Command is overridden in docker-compose
-CMD ["python", "src/serve/api.py"]
+USER app
+EXPOSE 8000 8501
+# Overridden in docker-compose for the UI service
+CMD ["uvicorn", "math2code.serve.api:app", "--host", "0.0.0.0", "--port", "8000"]
