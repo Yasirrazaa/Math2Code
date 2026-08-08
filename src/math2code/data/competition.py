@@ -64,6 +64,31 @@ def _jitter(value: int | float | complex, rng: random.Random) -> int | float | c
     return f * (1.0 + rng.uniform(-0.15, 0.15))
 
 
+def jitter_inputs(template: dict[str, Any], rng: random.Random) -> dict[str, Any]:
+    """Jitter one input template, keeping `x` / `x_val` / `x_value` variants coupled.
+
+    The competition's gold functions often take ``x_val`` parameters evaluated
+    against sympy symbols ``x``; the test inputs carry both keys with equal
+    values. Jittering each key independently would evaluate the function at a
+    different point than the ground truth.
+    """
+    groups: dict[str, list[str]] = {}
+    for k in template:
+        if k.endswith("_val"):
+            base = k[: -len("_val")]
+        elif k.endswith("_value"):
+            base = k[: -len("_value")]
+        else:
+            base = k
+        groups.setdefault(base, []).append(k)
+    out: dict[str, Any] = {}
+    for base, keys in groups.items():
+        val = _jitter(template[keys[0]], rng)
+        for k in keys:
+            out[k] = val
+    return out
+
+
 def resample_test_cases(
     pair: MathCodePair,
     n: int = 5,
@@ -83,9 +108,7 @@ def resample_test_cases(
     cases: list[TestCase] = []
     for i in range(n):
         tmpl = template_inputs[i % len(template_inputs)]
-        point: dict[str, int | float | complex] = {
-            k: _jitter(v, rng) for k, v in tmpl.items()
-        }
+        point = jitter_inputs(tmpl, rng)
         expected = None
         if use_sympy and pair.sympy_exp:
             expected = _sympy_eval(pair.sympy_exp, point)

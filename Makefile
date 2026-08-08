@@ -29,6 +29,18 @@ splits:
 eval-gold:
 	python -m math2code.evaluation.eval gold --split data/split/test.json --n 100
 
+smoke-pool:
+	python scripts/smoke_pool.py
+
+publish-data:
+	python scripts/publish_hf.py
+
+bench-api:
+	python -m math2code.evaluation.runner --split data/split/test.json --model api:deepseek
+
+bench-hf:
+	python -m math2code.evaluation.runner --split data/split/test.json --model hf:AI-MO/NuminaMath-7B-TIR
+
 docker-up:
 	docker compose up --build
 

@@ -13,6 +13,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
+from math2code.data.oracle import oracle_verify
 from math2code.evaluation.metrics import outputs_match
 from math2code.sandbox import SandboxPool
 from math2code.schemas import MathCodePair
@@ -30,14 +31,26 @@ def load_raw_data(filepath: str = "data/raw/synthetic_raw.json") -> list[MathCod
 def curate(
     data: list[MathCodePair], pool: SandboxPool
 ) -> tuple[list[MathCodePair], list[dict]]:
-    """Keep samples whose solution runs without error on every test case and,
-    when expected outputs exist, matches them within tolerance."""
+    """Keep samples whose solution passes the oracle.
+
+    With ground-truth `sympy_exp`: syntax + Monte Carlo numeric check on fresh
+    jittered inputs. Without it: fall back to running the original test cases.
+    """
     kept: list[MathCodePair] = []
     dropped: list[dict] = []
     for item in tqdm(data, desc="curating"):
         code = item.solution or ""
         if not code.strip():
             dropped.append({"task_id": item.task_id, "reason": "empty solution"})
+            continue
+        if item.sympy_exp:
+            ok, reasons = oracle_verify(item, code, pool=pool)
+            if ok:
+                kept.append(item)
+            else:
+                dropped.append(
+                    {"task_id": item.task_id, "reason": "; ".join(reasons)[:200]}
+                )
             continue
         cases = item.test_cases
         if not cases:

@@ -41,13 +41,13 @@ def match_inputs(func: Any, inputs: dict[str, Any]) -> dict[str, Any]:
 
 
 def format_result(v: Any) -> str:
-    """Canonical string form: floats as str(float), complex as 're+imj'."""
+    """Canonical string form parseable by complex(): '1.5', '1.0-2.0j', '-inf'."""
     if isinstance(v, complex):
-        return f"{v.real}+{v.imag}j"
+        return f"{v.real}{v.imag:+}j"
     try:
         c = complex(v)  # int, float, sympy numeric, numpy scalar
     except (TypeError, ValueError):
         return str(v)  # symbolic -> fails the numeric metric (correct)
     if c.imag != 0:
-        return f"{c.real}+{c.imag}j"
+        return f"{c.real}{c.imag:+}j"
     return str(c.real)

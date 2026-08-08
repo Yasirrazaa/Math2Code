@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import ast
 import math
+import random
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -30,14 +31,23 @@ def parse_number(value: object) -> complex:
         return complex(value)
     if isinstance(value, str):
         s = value.strip()
-        # try literal eval first (covers 'a+bj' and '1e-6')
+        # try literal eval first (covers 'a+bj', '1e-6')
         try:
             return complex(ast.literal_eval(s))
         except (ValueError, SyntaxError):
+            pass
+        # complex() accepts 'inf', '-inf', 'nan' and standard 'a-bj'
+        try:
+            return complex(s)
+        except ValueError:
+            # legacy/model outputs like '1.0+-2.0j' (re + negative-imag j)
             try:
-                return complex(float(s))
-            except ValueError as exc:
-                raise ValueError(f"unparseable output: {value!r}") from exc
+                return complex(s.replace(" +-", "-"))
+            except ValueError:
+                try:
+                    return complex(float(s))
+                except ValueError as exc2:
+                    raise ValueError(f"unparseable output: {value!r}") from exc2
     # numpy / sympy numeric types
     try:
         return complex(value)  # type: ignore[no-any-return, call-overload]
@@ -146,6 +156,22 @@ def score_predictions(
         per_problem_accuracy=n_correct_problems / len(test_cases),
         details=details,
     )
+
+
+def bootstrap_ci(
+    passed: Sequence[bool], n_resamples: int = 2000, seed: int = 0
+) -> tuple[float, float]:
+    """Bootstrap 95% CI for a proportion (per-problem accuracy)."""
+    rng = random.Random(seed)
+    n = len(passed)
+    if n == 0:
+        return 0.0, 0.0
+    means = sorted(
+        sum(rng.choice(passed) for _ in range(n)) / n for _ in range(n_resamples)
+    )
+    lo = means[max(0, int(0.025 * n_resamples) - 1)]
+    hi = means[min(n_resamples - 1, int(0.975 * n_resamples))]
+    return lo, hi
 
 
 def format_output(value: object) -> str:
