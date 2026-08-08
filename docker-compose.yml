@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  # The GPU-accelerated vLLM Engine
+  vllm-engine:
+    image: vllm/vllm-openai:latest
+    container_name: math2code_vllm
+    # We pass the HuggingFace repo ID and enable LoRA. 
+    # If using local adapters, mount them via volumes and specify via --lora-modules.
+    command: >
+      --model AI-MO/NuminaMath-7B-TIR
+      --enable-lora
+    ports:
+      - "8080:8000" # Expose vLLM standard port mapping
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+      - ./outputs/aimo_lora/final:/adapters/math2code_lora # Mount your LoRA adapters
+
+  # The FastAPI proxy that orchestrates vLLM + E2B execution
+  api:
+    build: .
+    container_name: math2code_api
+    command: uvicorn src.serve.api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - vllm-engine
+    environment:
+      - E2B_API_KEY=${E2B_API_KEY}
+      - VLLM_API_BASE=http://vllm-engine:8000/v1
+    volumes:
+      - ./src:/app/src
+
+  # The Gradio User Interface
+  frontend:
+    build: .
+    container_name: math2code_frontend
+    command: python src/serve/app.py
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    environment:
+      - API_URL=http://api:8000/generate
+    volumes:
+      - ./src:/app/src

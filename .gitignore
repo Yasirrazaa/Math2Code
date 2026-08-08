@@ -1,0 +1,55 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+wheels/
+
+# --- Tooling caches ---
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.coverage.*
+.coverage.*
+coverage.xml
+
+# --- Virtualenvs / envs ---
+.venv/
+venv/
+env/
+
+# --- Environment / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Data (large artifacts stay out of git; version via DVC/HF Hub) ---
+# Uncomment to stop tracking generated data in git:
+# data/raw/
+# data/processed/
+# outputs/
+
+# --- Training artifacts ---
+outputs/
+checkpoints/
+*.pt
+*.safetensors
+*.bin
+runs/
+wandb/
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# --- Notebooks scratch (keep committed notebooks, ignore checkpoints) ---
+.ipynb_checkpoints/
+
+# --- Docker ---
+*.log
