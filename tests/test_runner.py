@@ -90,3 +90,11 @@ def test_bootstrap_ci_deterministic() -> None:
 def test_bootstrap_ci_perfect() -> None:
     lo, hi = bootstrap_ci([True] * 50, n_resamples=200)
     assert lo == 1.0 and hi == 1.0
+
+
+def test_safe_name_sanitizes_hf_ids() -> None:
+    from math2code.evaluation.runner import _safe_name
+
+    assert _safe_name("hf:Qwen/Qwen2.5-Math-7B") == "hf_Qwen_Qwen2.5-Math-7B"
+    assert _safe_name("api:deepseek") == "api_deepseek"
+    assert _safe_name("my.own/model v2") == "my.own_model_v2"

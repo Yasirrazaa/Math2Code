@@ -20,6 +20,7 @@ import argparse
 import csv
 import json
 import os
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -108,6 +109,11 @@ class APIBackend:
         return str(resp.choices[0].text)
 
 
+def _safe_name(model: str) -> str:
+    """Model id -> filesystem-safe stem (hf ids contain ':' and '/')."""
+    return re.sub(r"[^A-Za-z0-9._-]", "_", model)
+
+
 def make_backend(spec: str) -> Any:
     if spec.startswith("hf:"):
         return HFBackend(spec[3:])
@@ -179,7 +185,7 @@ def benchmark_model(
     # persist submission-format CSV
     results_dir.mkdir(exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    csv_path = results_dir / f"{model.replace(':', '_')}_{stamp}.csv"
+    csv_path = results_dir / f"{_safe_name(model)}_{stamp}.csv"
 
     with open(csv_path, "w", newline="") as f:
         writer = csv.writer(f)
@@ -200,7 +206,7 @@ def benchmark_model(
         "per_case_accuracy": result.per_case_accuracy,
         "predictions_file": str(csv_path),
     }
-    (results_dir / f"{model.replace(':', '_')}_{stamp}.json").write_text(
+    (results_dir / f"{_safe_name(model)}_{stamp}.json").write_text(
         json.dumps(report, indent=2)
     )
     print(f"  saved -> {csv_path}")
