@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-
 import pytest
 from pydantic import ValidationError
 
@@ -60,10 +58,9 @@ def test_from_competition_row_nan_domain() -> None:
     assert pair.equation_type == "derivative"
 
 
-def test_roundtrip_real_competition_row() -> None:
+def test_roundtrip_real_competition_row(train_rows: list[dict]) -> None:
     """A real row from data/train.json must parse cleanly."""
-    with open("data/train.json") as f:
-        rows = json.load(f)
+    rows = train_rows
     pair = from_competition_row(rows[0])
     assert pair.task_id == rows[0]["task_id"]
     assert len(pair.test_cases) == 5

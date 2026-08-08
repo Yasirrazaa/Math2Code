@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-
 from math2code.data.competition import (
     dedup_by_latex,
     load_competition_train,
@@ -12,7 +10,7 @@ from math2code.data.competition import (
 from math2code.schemas import MathCodePair
 
 
-def test_load_competition_train_shape() -> None:
+def test_load_competition_train_shape(train_rows: list[dict]) -> None:
     pairs = load_competition_train()
     assert len(pairs) == 26846
     assert all(len(p.test_cases) == 5 for p in pairs[:20])
@@ -51,10 +49,9 @@ def test_resample_deterministic_per_seed() -> None:
     assert a[0].output == b[0].output
 
 
-def test_real_row_json_roundtrip() -> None:
+def test_real_row_json_roundtrip(train_rows: list[dict]) -> None:
     """Schema must roundtrip real competition rows (incl. nan domain)."""
-    with open("data/train.json") as f:
-        rows = json.load(f)
+    rows = train_rows
     bad = [
         r
         for r in rows

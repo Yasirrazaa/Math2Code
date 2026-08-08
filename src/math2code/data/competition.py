@@ -25,8 +25,22 @@ DATA_DIR = Path(__file__).resolve().parents[3] / "data"
 
 
 def load_competition_train(path: str | Path | None = None) -> list[MathCodePair]:
-    """Load data/train.json into MathCodePair rows."""
+    """Load data/train.json into MathCodePair rows.
+
+    Falls back to extracting the committed data/train.json.zip when the
+    extracted file is absent (fresh clone / CI).
+    """
     path = Path(path) if path else DATA_DIR / "train.json"
+    if not path.exists():
+        zpath = DATA_DIR / "train.json.zip"
+        if zpath.exists():
+            print(f"  [info] extracting {zpath.name} -> {path.name}")
+            import zipfile
+
+            with zipfile.ZipFile(zpath) as zf:
+                zf.extract("train.json", DATA_DIR)
+        else:
+            raise FileNotFoundError(f"{path} missing (and no {zpath.name} to extract)")
     with open(path) as f:
         rows = json.load(f)
     return [from_competition_row(r) for r in rows]
