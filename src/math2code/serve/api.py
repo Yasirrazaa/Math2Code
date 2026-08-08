@@ -14,10 +14,13 @@ from pydantic import BaseModel
 
 from math2code.model.prompts import build_prompt, extract_code
 from math2code.sandbox import SandboxPool
+from math2code.serve.observability import maybe_register_tracing
 
 app = FastAPI(
     title="Math2Code API", description="LaTeX -> executable Python via vLLM + sandbox"
 )
+
+maybe_register_tracing()
 
 VLLM_API_BASE = os.environ.get("VLLM_API_BASE", "http://localhost:8080/v1")
 VLLM_MODEL_NAME = os.environ.get("VLLM_MODEL_NAME", "AI-MO/NuminaMath-7B-TIR")

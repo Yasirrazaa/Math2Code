@@ -98,7 +98,8 @@ python -m math2code.evaluation.runner --model hf:./outputs/grpo_burnin/final
 Cost plan (see `PLAN.md` §Budget): weeks 1–3 cost **$0** (local CPU + free
 Colab/Kaggle tiers); the 1.5B GRPO burn-in runs on a free T4; a single 7B spot
 run (~$25–45 on a 3090/4090) plus cheap API baselines (~$6–11) keeps the total
-under **$100**.
+under **$100**. Step-by-step commands + budget gates: **`docs/TRAINING.md`**;
+hugging-face card (updated after each run): **`MODEL_CARD.md`**.
 
 ## Benchmarks
 

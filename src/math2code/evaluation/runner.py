@@ -17,6 +17,7 @@ Fails cleanly when the backend is unavailable (no GPU / no API key).
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import time
@@ -115,19 +116,22 @@ def make_backend(spec: str) -> Any:
 
 def _run_problem(
     pair: MathCodePair, backend: Any, pool: SandboxPool
-) -> list[str | None]:
-    """One problem: prompt -> generate -> extract -> execute -> outputs."""
+) -> tuple[list[str | None], str | None]:
+    """One problem: prompt -> generate -> extract -> execute -> outputs.
+
+    Returns (outputs, code); code is None when generation/extraction failed.
+    """
     prompt = build_prompt(pair.latex_expression)
     try:
         raw = backend.complete(prompt)
     except Exception as exc:  # transient API/GPU failure -> count as all-fail
         print(f"  [warn] {pair.task_id}: generation failed ({exc})")
-        return [None] * len(pair.test_cases)
+        return [None] * len(pair.test_cases), None
     code = extract_code(raw)
     if code is None:
-        return [None] * len(pair.test_cases)
+        return [None] * len(pair.test_cases), None
     outputs, _ = pool.run_solution_on_cases(code, [tc.input for tc in pair.test_cases])
-    return outputs
+    return outputs, code
 
 
 def benchmark_model(
@@ -137,6 +141,7 @@ def benchmark_model(
     max_problems: int | None = None,
     backend: Any | None = None,
     results_dir: Path = RESULTS_DIR,
+    save_code: Path | None = None,
 ) -> ScoreResult:
     pairs = load_split(split)
     if max_problems:
@@ -144,24 +149,35 @@ def benchmark_model(
 
     backend = backend or make_backend(model)
 
+    code_by_id: dict[str, str] = {}
     with SandboxPool(n_workers=6, timeout_s=20, memory_mb=4096) as pool:
         t0 = time.time()
         predictions: list[list[Any]] = []
         ids: list[str] = []
         for i, p in enumerate(pairs):
-            preds = _run_problem(p, backend, pool)
+            preds, code = _run_problem(p, backend, pool)
             predictions.append(preds)  # type: ignore[arg-type]
             ids.append(p.task_id)
+            if code is not None:
+                code_by_id[p.task_id] = code
             if (i + 1) % 50 == 0:
                 print(f"  {i + 1}/{len(pairs)} problems ({time.time() - t0:.0f}s)")
         cases = [p.test_cases for p in pairs]  # type: ignore[arg-type]
         result = score_predictions(predictions, cases, ids)
 
+    if save_code is not None:
+        save_code.parent.mkdir(parents=True, exist_ok=True)
+        with open(save_code, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["id", "code"])
+            for tid in ids:
+                writer.writerow([tid, code_by_id.get(tid, "")])
+        print(f"  saved code -> {save_code}")
+
     # persist submission-format CSV
     results_dir.mkdir(exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
     csv_path = results_dir / f"{model.replace(':', '_')}_{stamp}.csv"
-    import csv
 
     with open(csv_path, "w", newline="") as f:
         writer = csv.writer(f)
@@ -195,10 +211,22 @@ def main() -> None:
     ap.add_argument("--model", required=True, help="hf:<id> or api:<name>")
     ap.add_argument("--out", default="results/latest.json")
     ap.add_argument("--max-problems", type=int, default=None)
+    ap.add_argument(
+        "--save-code",
+        type=Path,
+        default=None,
+        help="also write id,code CSV for E2B re-execution",
+    )
     args = ap.parse_args()
 
     try:
-        result = benchmark_model(args.split, args.model, args.out, args.max_problems)
+        result = benchmark_model(
+            args.split,
+            args.model,
+            args.out,
+            args.max_problems,
+            save_code=args.save_code,
+        )
     except BackendError as exc:
         print(f"ERROR: {exc}")
         raise SystemExit(2)

@@ -74,8 +74,9 @@ def test_empty_backend_scores_zero(tmp_path) -> None:  # type: ignore[no-untyped
     pairs = load_split(str(split))
     backend = EmptyStub()
     with SandboxPool(n_workers=2, timeout_s=20) as pool:
-        preds = [_run_problem(p, backend, pool) for p in pairs]
+        preds, codes = zip(*[_run_problem(p, backend, pool) for p in pairs])
     assert all(p is None for p in preds[0])
+    assert all(c is None for c in codes)
 
 
 def test_bootstrap_ci_deterministic() -> None:
