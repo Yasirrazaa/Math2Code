@@ -1,4 +1,4 @@
-.PHONY: setup setup-train lint format typecheck test test-quick splits eval-gold docker-up clean
+.PHONY: setup setup-train lint format typecheck test test-quick check splits eval-gold docker-up clean
 
 setup:
 	uv pip install --system -e ".[dev]"
@@ -23,8 +23,7 @@ test:
 test-quick:
 	pytest tests/ -q -m "not slow"
 
-splits:
-	python scripts/make_splits.py
+check: lint typecheck test
 
 eval-gold:
 	python -m math2code.evaluation.eval gold --split data/split/test.json --n 100

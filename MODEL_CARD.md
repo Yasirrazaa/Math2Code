@@ -48,10 +48,11 @@ Full protocol in `docs/ENGINEERING_REVIEW.md` and `PLAN.md`.
 
 ## Known value-add slice
 
-`parse_latex` solves the algebraic slice at 100% but **0%** of the calculus
-slice (integration/differential/derivative/exponential_decay, 635 problems) —
-that slice + the OOD targets (`augmented_equation`, `logrithmic`,
-`fractional`, complex outputs) is what this model must add.
+`parse_latex` solves the algebraic slice at 100% but **0%** on the calculus
+slice (integration/differential/derivative/exponential_decay — 127 problems /
+635 test cases): that slice is what this model must add. The competition's
+closed-truth public test additionally holds 98 complex-output rows
+(generalization probe only: no ground truth shipped; see `docs/DATA_CARD.md`).
 
 ## Sandboxing & safety
 

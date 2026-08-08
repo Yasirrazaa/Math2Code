@@ -121,11 +121,15 @@ model money is spent; the LLM rows are filled by `evaluation/runner.py`:
 
 `parse_latex` solves **100%** of the algebraic slice (rational, diophantine,
 summation, exponential, multivariable, fractional, logrithmic, algebraic) but
-**0%** of the 635-problem calculus slice — integration, differential,
-derivative, exponential_decay (run `scripts/analyze_results.py` to reproduce).
+**0%** on the calculus slice — integration, differential, derivative,
+exponential_decay (127 problems / 635 test cases; run
+`scripts/analyze_results.py` to reproduce, noting its counts are per-case).
 The model's measurable value-add is exactly that slice, which is what the GRPO
-curriculum should emphasize (`augmented_equation`, `logrithmic`, `fractional`,
-and the 98 complex-output items are the OOD targets).
+curriculum should emphasize. The competition's closed-truth public test (1,004
+synthetic rows, no outputs) additionally holds 98 complex-output and 500
+`augmented_equation` rows — documented as a generalization probe in
+`docs/DATA_CARD.md` (our frozen split is real-output only; the metric still
+supports complex via `parse_number`'s `re±imj` handling).
 
 ## Verification story (evidence in-repo)
 
