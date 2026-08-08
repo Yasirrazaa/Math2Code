@@ -1,0 +1,14 @@
+{
+  "baseline": "baseline_trivial_floor",
+  "timestamp": "20260808-235408",
+  "n_problems": 397,
+  "n_correct_problems": 3,
+  "per_problem_accuracy": 0.007556675062972292,
+  "ci95": [
+    0.0,
+    0.017632241813602016
+  ],
+  "per_case_accuracy": 0.02871536523929471,
+  "wall_seconds": 0.0,
+  "predictions_file": "results/baseline_trivial_floor_20260808-235408.csv"
+}

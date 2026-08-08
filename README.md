@@ -103,15 +103,28 @@ under **$100**.
 ## Benchmarks
 
 Functional correctness on the frozen test split (pass@1, greedy, bootstrap 95% CI).
-*Measured after the Week 3 baseline run — the harness is ready:*
+The two zero-cost rows below are **measured** — they establish the floor before any
+model money is spent; the LLM rows are filled by `evaluation/runner.py`:
 
 | Model | Per-problem accuracy | CI95 |
 |-------|---------------------|------|
+| Trivial floor (always 0) | **0.0076** (3/397) | — |
+| SymPy `parse_latex` (zero-cost) | **0.6675** (265/397) | — |
 | GPT-4o-mini (zero-shot) | *pending* | — |
 | DeepSeek-V3 (zero-shot) | *pending* | — |
 | NuminaMath-7B-TIR (zero-shot) | *pending* | — |
 | **Math2Code GRPO (Qwen2.5-Math-7B)** | *pending* | — |
 | Gold solutions (harness sanity) | **1.0000** | — |
+
+### What the zero-cost baseline tells us
+
+`parse_latex` solves **100%** of the algebraic slice (rational, diophantine,
+summation, exponential, multivariable, fractional, logrithmic, algebraic) but
+**0%** of the 635-problem calculus slice — integration, differential,
+derivative, exponential_decay (run `scripts/analyze_results.py` to reproduce).
+The model's measurable value-add is exactly that slice, which is what the GRPO
+curriculum should emphasize (`augmented_equation`, `logrithmic`, `fractional`,
+and the 98 complex-output items are the OOD targets).
 
 ## Verification story (evidence in-repo)
 

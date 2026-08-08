@@ -41,6 +41,12 @@ bench-api:
 bench-hf:
 	python -m math2code.evaluation.runner --split data/split/test.json --model hf:AI-MO/NuminaMath-7B-TIR
 
+baselines:
+	python -m math2code.evaluation.baselines --split data/split/test.json
+
+analyze:
+	python scripts/analyze_results.py --split data/split/test.json --predictions $$(ls -t results/baseline_latex_parse_*.csv | head -1)
+
 docker-up:
 	docker compose up --build
 

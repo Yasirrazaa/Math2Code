@@ -1,0 +1,14 @@
+{
+  "baseline": "baseline_latex_parse",
+  "timestamp": "20260808-235153",
+  "n_problems": 397,
+  "n_correct_problems": 0,
+  "per_problem_accuracy": 0.0,
+  "ci95": [
+    0.0,
+    0.0
+  ],
+  "per_case_accuracy": 0.0,
+  "wall_seconds": 0.7,
+  "predictions_file": "results/baseline_latex_parse_20260808-235153.csv"
+}
