@@ -1,0 +1,14 @@
+{
+  "model": "hf:SmolLM2-135M",
+  "split": "data/split/test.json",
+  "timestamp": "20260809-002516",
+  "n_problems": 3,
+  "n_correct_problems": 0,
+  "per_problem_accuracy": 0.0,
+  "ci95": [
+    0.0,
+    0.0
+  ],
+  "per_case_accuracy": 0.0,
+  "predictions_file": "results/hf_SmolLM2-135M_20260809-002516.csv"
+}

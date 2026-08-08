@@ -39,17 +39,16 @@ def format_instruction(sample: dict[str, Any], format: str = "sft") -> dict[str,
 def train() -> None:  # pragma: no cover - requires GPU stack
     """Entrypoint (Hydra config: configs/train.yaml)."""
     import hydra
-    import torch
-    from datasets import load_dataset
     from omegaconf import DictConfig
-    from peft import LoraConfig
-    from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
-    from trl import SFTTrainer
 
     @hydra.main(version_base=None, config_path="../../../configs", config_name="train")
     def _run(cfg: DictConfig) -> None:
-        # 1. Load + format dataset
-        print(f"Loading dataset from {cfg.data.train_file}")
+        import torch  # noqa: F401  (GPU stack; only needed when actually training)
+        from datasets import load_dataset
+        from peft import LoraConfig
+        from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
+        from trl import SFTTrainer
+
         dataset = load_dataset("json", data_files=cfg.data.train_file, split="train")
         dataset = dataset.map(
             lambda s: format_instruction(s, format=cfg.training.get("format", "sft"))

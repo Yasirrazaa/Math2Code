@@ -49,7 +49,9 @@ class HFBackend:
                 "transformers/torch not installed; run `uv pip install -e '.[train]'`"
             ) from exc
         self.model = AutoModelForCausalLM.from_pretrained(
-            model_id, device_map="auto", torch_dtype=torch.bfloat16
+            model_id,
+            device_map="auto",
+            dtype=torch.bfloat16,  # transformers>=5: torch_dtype renamed to dtype
         )
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
         self.max_tokens = max_tokens
