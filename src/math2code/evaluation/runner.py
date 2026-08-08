@@ -60,7 +60,7 @@ class HFBackend:
     def complete(self, prompt: str) -> str:
 
         ids = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
-        out = self.model.generate(
+        out = self.model.generate(  # type: ignore[misc]  # transformers>=5 type quirk
             **ids,
             max_new_tokens=self.max_tokens,
             do_sample=False,  # greedy = pass@1
