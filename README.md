@@ -1,23 +1,21 @@
-# Math2Code (LaTeX → Executable Python Code)
+# Math2Code — LaTeX → Executable, Verifiable Python (SymPy)
 
-> Fine-tuning a math LLM to **translate LaTeX mathematical expressions into runnable, numerically-correct Python (SymPy) code**. A complete production pipeline: synthetic data generation → E2B safe sandbox curation → LoRA fine-tuning → functional-correctness evaluation harness → FastAPI + Gradio deployment.
+> **Capstone → portfolio-grade ML engineering.** A math LLM that translates a LaTeX
+> expression into executable Python (SymPy) code, trained with **rule-based RLVR
+> (GRPO)**, verified by a **deterministic competition-scoring harness**, sandboxed
+> end-to-end, and benchmarked against frontier API models — on a **$100 budget**.
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c.svg)](https://pytorch.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI Pipeline](https://github.com/your-username/math2code/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/math2code/actions/workflows/ci.yml)
+[![CI Pipeline](https://github.com/Yasirrazaa/Math2Code/actions/workflows/ci.yml/badge.svg)](https://github.com/Yasirrazaa/Math2Code/actions/workflows/ci.yml)
 
 ---
 
-## What this project does
+## What it does
 
-Given a LaTeX expression such as:
-
-```latex
-\frac{x^{2} + 3y^{2}}{2x + 5y}
-```
-
-The model generates an executable Python function that evaluates it symbolically/numerically with SymPy:
+Given LaTeX like `\frac{x^{2} + 3y^{2}}{2x + 5y}`, the model emits a `calculate(...)`
+function that evaluates the expression correctly — including symbolic domains
+(integration, derivatives, diophantine, complex outputs):
 
 ```python
 import sympy as sp
@@ -25,90 +23,102 @@ import sympy as sp
 def algebraic_function(x, y):
     x, y = sp.symbols('x y')
     expression = (x**2 + 3*y**2) / (2*x + 5*y)
-    return expression.subs({x: x, y: y})
+    return float(expression.subs({x: x, y: y}))
 ```
 
-This turns "math on paper" into code an AI agent or program can actually run, verify, and compose — useful for automated math tutoring, symbolic-computation agents, and verifiable tool-use.
+Correctness is **execution-based, not string-based**: generated code runs in a
+sandbox on test inputs and the outputs are compared numerically (`isclose`,
+complex-aware) exactly like the bootcamp competition judged it.
 
----
+## Why this repo exists (measurement-first)
 
-## Architecture & Pipeline
+The original capstone scored **0.75** on the (private) bootcamp leaderboard with an
+evaluation that leaked training data (last 100 rows of the train file) and only
+checked "runs without error". This rewrite fixes that:
 
-```mermaid
-flowchart LR
-    A[Synthetic Data Gen\nAsync Groq + Instructor] --> B[Sandbox Curation\nE2B Code Interpreter]
-    B --> C[Curated JSON Dataset\nDVC Tracked]
-    C --> D[LoRA Fine-tuning\nNuminaMath-7B-TIR + W&B]
-    D --> E[Eval Harness\nFunctional Pass@1]
-    D --> F[Deployment\nFastAPI + Gradio Frontend]
-```
+1. **Frozen, contamination-checked split** — 22,796 deduplicated samples →
+   22,002 train / 397 val / **397 test**, SHA-256 manifest + `test_ids.txt`.
+   The gold solutions must score **1.0** on the test set before any model run
+   counts — they do (397/397, verified twice).
+2. **Competition-faithful metric** — per-case + per-problem accuracy, `isclose`
+   rel_tol=1e-6 / abs_tol=1e-9, complex strings (`'-10.09+88.33j'`), `-inf`
+   overflow equality, bootstrap 95% CIs.
+3. **No LLM-judged rewards** — GRPO uses the deterministic rewards in
+   `model/rewards.py` (oracle terminal reward, exec success, tool-use, traceback
+   meta, complexity penalty) on **freshly resampled inputs** per rollout so the
+   policy cannot memorize the 5 fixed test cases.
+4. **No custom RL loop** — we stand on TRL's `GRPOTrainer` + `environment_factory`.
 
-## Repository Structure
+## Repository layout
 
 ```text
-Math2Code/
-├── configs/
-│   └── train.yaml            # Hydra configuration for fine-tuning
+src/math2code/
+├── schemas.py            # canonical MathCodePair contract (fixes python_code/solution drift)
 ├── data/
-│   └── final/                # DVC tracked curated datasets
-├── notebooks/                # Original capstone prototyping notebooks
-├── src/
-│   ├── data/
-│   │   ├── generate.py       # Pydantic structured data generation
-│   │   └── curate.py         # E2B safe sandbox execution curation
-│   ├── model/
-│   │   └── train.py          # PEFT/LoRA SFTTrainer script with W&B
-│   ├── evaluation/
-│   │   └── eval.py           # E2B-powered Pass@1 evaluation harness
-│   └── serve/
-│       ├── api.py            # FastAPI inference server
-│       └── app.py            # Gradio interactive frontend
-├── tests/                    # Pytest suite
-├── .github/workflows/ci.yml  # GitHub Actions CI
-├── docker-compose.yml        # Dockerized deployment
-├── Dockerfile                # API & App Container
-└── pyproject.toml            # uv dependencies & project config
+│   ├── competition.py    # loader, dedup, GRPO input re-sampling (x/x_val coupling)
+│   ├── oracle.py         # layered verification: syntax -> Monte Carlo numeric -> identity
+│   ├── generate.py       # secondary synthetic data (Groq + instructor)
+│   └── curate.py         # oracle-gated curation
+├── sandbox/
+│   ├── base.py           # AST allowlist, RLIMIT, subprocess isolation
+│   └── pool.py           # self-healing worker pool: 389 exec/s, 10k smoke in 26s
+├── evaluation/
+│   ├── metrics.py        # competition metric + bootstrap CI
+│   ├── eval.py           # harness CLI: gold sanity check, score CSV, bench
+│   └── runner.py         # model backends: hf:<id> (local) / api:<deepseek|openai>
+├── model/
+│   ├── prompts.py        # zero-shot + TIR prompts, code extraction
+│   ├── rewards.py        # deterministic RLVR rewards (fully unit-tested)
+│   ├── train.py          # SFT warmup (LoRA, TIR format) — GPU box
+│   └── grpo.py           # TRL GRPOTrainer + environment_factory — GPU box
+└── serve/
+    ├── api.py            # FastAPI: vLLM completion -> extract -> sandbox execute
+    └── app.py            # Gradio UI
 ```
 
----
-
-## Quick Start (Docker)
-
-To run the interactive Gradio demo and FastAPI backend locally:
+## Quick start (local, CPU, $0)
 
 ```bash
-# 1. Provide your E2B API Key in the environment
-export E2B_API_KEY="e2b_..."
-
-# 2. Spin up the stack
-docker compose up --build
+uv pip install -e ".[dev]"
+make splits      # rebuild frozen split from data/train.json
+make eval-gold   # gold solutions must score 1.0 on the test split
+make test        # 69 tests: metric, sandbox, oracle, rewards, runner, API
 ```
 
-- **Frontend (Gradio):** http://localhost:8501
-- **Backend (FastAPI):** http://localhost:8000/docs
+## Training + benchmarking (GPU / API budget)
 
----
+```bash
+uv pip install -e ".[train]"
+python -m math2code.model.train           # SFT warmup (NuminaMath-7B-TIR, TIR format)
+python -m math2code.model.grpo            # GRPO (1.5B burn-in on free T4, then 7B spot)
+python -m math2code.evaluation.runner --model api:deepseek   # zero-shot baselines
+python -m math2code.evaluation.runner --model hf:./outputs/grpo_burnin/final
+```
 
-## ML Engineering & MLOps Features
+Cost plan (see `PLAN.md` §Budget): weeks 1–3 cost **$0** (local CPU + free
+Colab/Kaggle tiers); the 1.5B GRPO burn-in runs on a free T4; a single 7B spot
+run (~$25–45 on a 3090/4090) plus cheap API baselines (~$6–11) keeps the total
+under **$100**.
 
-- **Safe Sandbox Execution:** Uses [E2B Code Interpreter](https://e2b.dev/) to securely execute LLM-generated code during dataset curation and evaluation, preventing malicious code execution.
-- **Structured Generation:** Uses `instructor` and `pydantic` to enforce perfect JSON outputs from the LLM generator.
-- **Experiment Tracking:** Uses **Weights & Biases** to log LoRA fine-tuning hyperparameters, loss curves, and hardware metrics.
-- **Configuration Management:** Uses **Hydra** for scalable, YAML-based training configuration.
-- **Data Versioning:** Datasets are tracked via **DVC**.
-- **Containerized Inference:** Deployed using a modern **FastAPI** backend connected to a **Gradio** UI.
+## Benchmarks
 
----
+Functional correctness on the frozen test split (pass@1, greedy, bootstrap 95% CI).
+*Measured after the Week 3 baseline run — the harness is ready:*
 
-## Benchmarks & Evaluation
+| Model | Per-problem accuracy | CI95 |
+|-------|---------------------|------|
+| GPT-4o-mini (zero-shot) | *pending* | — |
+| DeepSeek-V3 (zero-shot) | *pending* | — |
+| NuminaMath-7B-TIR (zero-shot) | *pending* | — |
+| **Math2Code GRPO (Qwen2.5-Math-7B)** | *pending* | — |
+| Gold solutions (harness sanity) | **1.0000** | — |
 
-Accuracy is measured by **functional correctness (Pass@1)**, not string matching. The model's output is extracted and safely executed in the E2B Code Interpreter against test inputs to ensure the symbolic math matches the ground truth.
+## Verification story (evidence in-repo)
 
-| Model | Functional Correctness (Pass@1) |
-|-------|---------------------------------|
-| GPT-4o-mini (Zero-Shot) | *Pending* |
-| Claude 3.5 Sonnet (Zero-Shot) | *Pending* |
-| DeepSeek-Math-7B-Base | *Pending* |
-| **Math2Code Fine-Tuned (NuminaMath-7B)** | **XX.X%** |
+- `make eval-gold` → `per-problem accuracy: 1.0000 (397/397)` on the frozen split
+- `python scripts/smoke_pool.py` → `10,000 snippets in 25.7s → 389 exec/s, 0 failures`
+- oracle verifies 200/200 gold solutions on fresh jittered inputs
+- CI: ruff, mypy, 69 pytest tests, package build, Docker build, split-integrity check
 
-*(Update table with final results after running `src/evaluation/eval.py`)*
+See `PLAN.md` for the full blueprint and `docs/ENGINEERING_REVIEW.md` for the
+original codebase audit.

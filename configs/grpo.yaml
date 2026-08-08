@@ -1,0 +1,37 @@
+# GRPO config — 1.5B burn-in (free T4) then 7B spot run (tune for 3090/4090)
+model:
+  base_model: "Qwen/Qwen2.5-Math-1.5B-Instruct"   # burn-in; switch to Qwen2.5-Math-7B for main run
+
+data:
+  train_file: "./data/split/train.jsonl"          # 22k rows; capped below for RL
+  max_prompts: 800                                # burn-in; 1,500 for the 7B run
+
+environment:
+  n_workers: 8
+  timeout_s: 2.0                                  # RL profile: 2s / 512MB
+  memory_mb: 512
+
+training:
+  output_dir: "./outputs/grpo_burnin"
+  run_name: "math2code_grpo_1.5b_burnin"
+  num_generations: 8
+  temperature: 0.7
+  max_completion_length: 2048
+  max_prompt_length: 1024
+  per_device_train_batch_size: 8
+  gradient_accumulation_steps: 2
+  learning_rate: 1e-6
+  bf16: true
+  use_vllm: false                                # T4 burn-in: TRL's own sampling
+  logging_steps: 1
+  save_steps: 20
+  save_total_limit: 3
+  report_to: ["wandb"]
+
+rewards:
+  terminal: 2.0      # must match model/rewards.py TERMINAL_REWARD
+  exec_ok: 1.0
+  exec_err: -0.25
+  tool_attempt: 0.1
+  meta_traceback: 0.2
+  complexity_per_op: 0.01
