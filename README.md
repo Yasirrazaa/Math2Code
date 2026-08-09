@@ -151,7 +151,7 @@ supports complex via `parse_number`'s `re±imj` handling).
 - `make eval-gold` → `per-problem accuracy: 1.0000 (397/397)` on the frozen split
 - `python scripts/smoke_pool.py` → `10,000 snippets in 25.7s → 389 exec/s, 0 failures`
 - oracle verifies 200/200 gold solutions on fresh jittered inputs
-- CI: ruff, mypy, 69 pytest tests, package build, Docker build, split-integrity check
+- CI: ruff, mypy, 80 pytest tests, package build, Docker build, split-integrity check
 
 See `PLAN.md` for the full blueprint and `docs/ENGINEERING_REVIEW.md` for the
 original codebase audit.
