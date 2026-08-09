@@ -99,7 +99,7 @@ HF_TOKEN=... python scripts/publish_hf.py --split data/split --repo your-handle/
 | Symptom | Action |
 |---------|--------|
 | Pool workers crash under concurrency | Self-healing pool retries once; raise `memory_mb` if sympy OOMs on dsolve rows |
-| Reward flat / NaN | Check `model/rewards.py` reward decomposition; verify TIR observation masking in TRL 1.9.x; drop lr |
+| Reward flat / NaN | Check `model/rewards.py` reward decomposition; drop lr; restore SFT checkpoint |
 | RLVR diverges by step 200 | Stop, restore SFT checkpoint, halve lr, increase entropy coef |
 | Parse-baseline beats the model | The calculus slice is the target — check `analyze_results.py`; if non-calculus regressed, SFT on augmented hard negatives (adversarial mutator) |
 | Budget exceeds gate | Stop immediately; burn-in already proved the reward signal; report honestly |

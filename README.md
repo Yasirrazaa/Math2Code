@@ -47,7 +47,9 @@ checked "runs without error". This rewrite fixes that:
    `model/rewards.py` (oracle terminal reward, exec success, tool-use, traceback
    meta, complexity penalty) on **freshly resampled inputs** per rollout so the
    policy cannot memorize the 5 fixed test cases.
-4. **No custom RL loop** — we stand on TRL's `GRPOTrainer` + `environment_factory`.
+4. **No custom RL loop** — we stand on TRL's `GRPOTrainer` with reward funcs
+   that sandbox-execute each completion (verified against TRL 1.9.2; see
+   `tests/test_grpo.py`).
 
 ## Repository layout
 
@@ -70,7 +72,7 @@ src/math2code/
 │   ├── prompts.py        # zero-shot + TIR prompts, code extraction
 │   ├── rewards.py        # deterministic RLVR rewards (fully unit-tested)
 │   ├── train.py          # SFT warmup (LoRA, TIR format) — GPU box
-│   └── grpo.py           # TRL GRPOTrainer + environment_factory — GPU box
+│   └── grpo.py           # TRL GRPOTrainer + sandbox-in-reward — GPU box
 └── serve/
     ├── api.py            # FastAPI: vLLM completion -> extract -> sandbox execute
     └── app.py            # Gradio UI
