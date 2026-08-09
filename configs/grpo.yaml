@@ -17,7 +17,6 @@ training:
   num_generations: 8
   temperature: 0.7
   max_completion_length: 2048
-  max_prompt_length: 1024
   per_device_train_batch_size: 8
   gradient_accumulation_steps: 2
   learning_rate: 1e-6

@@ -1,8 +1,16 @@
-"""GRPO training via TRL (rule-based rewards, sandboxed environment).
+"""GRPO training via TRL (rule-based rewards, sandboxed execution).
 
-No custom rollout loop: we stand on TRL's `GRPOTrainer` with an
-`environment_factory` whose `step(action)` executes the emitted code in the
-local sandbox and returns an observation. Rewards come from `rewards.py`.
+No custom rollout loop: we stand on TRL's `GRPOTrainer` with reward funcs
+that execute the emitted code in the local sandbox against per-rollout
+resampled inputs (see `model/rewards.py`). The `task_id` dataset column is
+forwarded to the reward function by the trainer, so no prompt->id map is
+needed.
+
+Targets TRL 1.9.x (pinned in pyproject). Verified against 1.9.2:
+GRPOConfig/GRPOTrainer kwargs and the reward-func kwargs contract
+(dataset columns arrive as lists). The TRL `environment_factory` tool-calling
+API was deliberately NOT used — base math models are not function-calling
+models, and the sandbox already runs in the reward path.
 
 Run (Week 5+; needs a GPU box):
     uv pip install -e ".[train]"
@@ -16,6 +24,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from math2code.model.rewards import grade_trajectory
+from math2code.sandbox import SandboxPool
+from math2code.schemas import MathCodePair
+
 
 def train() -> None:  # pragma: no cover - GPU stack
     import hydra
@@ -28,10 +40,38 @@ def train() -> None:  # pragma: no cover - GPU stack
     _run()
 
 
+def make_reward_fn(pair_by_id: dict[str, MathCodePair], pool: SandboxPool) -> Any:
+    """Reward func matching TRL 1.9.x's calling convention.
+
+    TRL invokes sync reward funcs as
+    ``fn(prompts=..., completions=..., completion_ids=..., **dataset_cols)``
+    — dataset columns (here ``task_id``) arrive as lists via kwargs. This
+    factory is module-level so the contract is unit-testable on CPU.
+    """
+
+    def reward_fn(
+        prompts: list[str],
+        completions: list[str],
+        task_id: list[str],
+        **kwargs: Any,
+    ) -> list[float]:
+        del kwargs  # completion_ids / trainer_state / log_metric etc.
+        rewards: list[float] = []
+        for completion, tid in zip(completions, task_id):
+            pair = pair_by_id.get(tid)
+            if pair is None:
+                rewards.append(0.0)
+                continue
+            rewards.append(grade_trajectory(pair, completion, pool).total)
+        return rewards
+
+    return reward_fn
+
+
 def _train_grpo(
     cfg: Any,
 ) -> None:  # pragma: no cover - GPU stack
-    """Build the dataset, environment factory, reward funcs, and launch TRL."""
+    """Build the dataset, reward func, and launch TRL GRPO."""
     import json
     from pathlib import Path
 
@@ -39,84 +79,34 @@ def _train_grpo(
     from trl import GRPOConfig, GRPOTrainer
 
     from math2code.model.prompts import build_prompt
-    from math2code.model.rewards import grade_trajectory
     from math2code.sandbox import SandboxPool
     from math2code.schemas import MathCodePair
 
-    # 1. prompt-only dataset (inputs/test-cases are injected by the env)
+    # 1. prompt + task_id dataset (task_id is forwarded to reward kwargs)
     rows = json.loads(Path(cfg.data.train_file).read_text())
     pairs = [MathCodePair.model_validate(r) for r in rows[: cfg.data.max_prompts]]
     prompts = [build_prompt(p.latex_expression) for p in pairs]
     dataset = Dataset.from_dict(
         {"prompt": prompts, "task_id": [p.task_id for p in pairs]}
     )
-    prompt_to_task = dict(zip(prompts, [p.task_id for p in pairs]))
+    pair_by_id = {p.task_id: p for p in pairs}
     print(f"GRPO prompts: {len(dataset)} (model {cfg.model.base_model})")
 
-    # 2. sandbox pool shared by the environment (2s / 512MB = RL profile)
+    # 2. sandbox pool shared by the reward (2s / 512MB = RL profile)
     pool = SandboxPool(
         n_workers=cfg.environment.n_workers, timeout_s=cfg.environment.timeout_s
     )
 
-    # 3. environment factory: step(code) executes in the sandbox
-    def environment_factory(question: str) -> Any:
-        from trl.extras.environment import BaseEnvironment, Observation
+    # 3. reward: grade each completion against resampled inputs (dense signal)
+    reward_fn = make_reward_fn(pair_by_id, pool)
 
-        class MathEnv(BaseEnvironment):
-            def __init__(self) -> None:
-                super().__init__()
-                self.turns = 0
-
-            def reset(self) -> Observation:
-                self.turns = 0
-                return Observation(text="")
-
-            def step(self, action: str) -> Observation:
-                self.turns += 1
-                # observation tokens come back as model text; we execute the code
-                res = pool.execute(action, inputs={})
-                if res.safety_error:
-                    obs = f"Safety error: {res.safety_error}"
-                elif res.timed_out:
-                    obs = "Execution timed out."
-                elif res.ok:
-                    obs = res.stdout or "Executed successfully."
-                else:
-                    obs = res.stderr or "Execution failed."
-                return Observation(text=f"\n{obs}\n")
-
-        return MathEnv()
-
-    # 4. reward: grade the whole trajectory against resampled cases
-    pair_by_id = {p.task_id: p for p in pairs}
-
-    def make_reward(seed_offset: int) -> Any:
-        def reward_fn(
-            prompts_batch: list[str], completions_batch: list[str]
-        ) -> list[float]:
-            rewards = []
-            for prompt, completion in zip(prompts_batch, completions_batch):
-                tid: str | None = prompt_to_task.get(prompt)
-                pair = pair_by_id.get(tid)  # type: ignore[arg-type]
-                if pair is None:
-                    rewards.append(0.0)
-                    continue
-                bundle = grade_trajectory(
-                    pair, completion, pool, seed_offset=seed_offset
-                )
-                rewards.append(bundle.total)
-            return rewards
-
-        return reward_fn
-
-    # 5. TRL config: batch-scaled rewards, no vLLM on the burn-in run
+    # 4. TRL config: batch-scaled rewards, no vLLM on the burn-in run
     args = GRPOConfig(
         output_dir=cfg.training.output_dir,
         run_name=cfg.training.run_name,
         num_generations=cfg.training.num_generations,
         temperature=cfg.training.temperature,
         max_completion_length=cfg.training.max_completion_length,
-        max_prompt_length=cfg.training.max_prompt_length,
         per_device_train_batch_size=cfg.training.per_device_train_batch_size,
         gradient_accumulation_steps=cfg.training.gradient_accumulation_steps,
         learning_rate=cfg.training.learning_rate,
@@ -128,17 +118,13 @@ def _train_grpo(
         save_steps=cfg.training.save_steps,
         save_total_limit=cfg.training.save_total_limit,
         report_to=list(cfg.training.report_to),
-        # observation tokens must be excluded from loss/logprob computation
-        observation_token="<observation>",
-        evaluation_strategy="no",
     )
 
     trainer = GRPOTrainer(
         model=cfg.model.base_model,
         args=args,
         train_dataset=dataset,
-        reward_funcs=[make_reward(seed_offset=0)],
-        environment_factory=environment_factory,
+        reward_funcs=[reward_fn],
     )
     trainer.train()
     trainer.save_model(f"{cfg.training.output_dir}/final")
