@@ -84,10 +84,18 @@ src/math2code/
 uv pip install -e ".[dev]"
 make splits      # rebuild frozen split from data/train.json
 make eval-gold   # gold solutions must score 1.0 on the test split
-make baselines   # zero-cost parse_latex + floor baselines (measured)
+make test        # 80 tests: metric, sandbox, oracle, rewards, runner, baselines, GRPO, E2B
+```
+
+The zero-cost `parse_latex` baseline needs the optional `baseline` extra
+(antlr4 4.11.x, which conflicts with hydra/omegaconf — install in a dedicated
+venv):
+
+```bash
+uv pip install -e ".[baseline]"
+make baselines   # measured rows for the table below
 make analyze     # per-equation-type breakdown of the latest baseline
 make plots       # regenerate the figures below
-make test        # 76 tests: metric, sandbox, oracle, rewards, runner, baselines, E2B
 ```
 
 ## Training + benchmarking (GPU / API budget)

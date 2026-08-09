@@ -44,7 +44,13 @@ dev = [
     "matplotlib>=3.8",  # scripts/plot_results.py figures
     # E2B sandboxed final eval (e2e_eval.py, lazy import; needs E2B_API_KEY)
     "e2b-code-interpreter>=1.0.0",
-    # sympy's latex parser hard-pins the antlr4 4.11.x line
+]
+# Optional: SymPy parse_latex zero-cost baseline. NOT in [dev]: sympy's latex
+# parser hard-requires antlr4 4.11.x while omegaconf/hydra (needed for the
+# training entrypoints) hard-pins antlr4 4.9.x — the two cannot coexist in one
+# env. Install into a dedicated venv when you want `make baselines`:
+#   uv pip install -e ".[baseline]"
+baseline = [
     "antlr4-python3-runtime==4.11.1",
 ]
 

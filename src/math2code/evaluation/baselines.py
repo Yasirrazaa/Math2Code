@@ -33,8 +33,22 @@ RESULTS_DIR = Path("results")
 
 
 def latex_parse_baseline(pairs: list[MathCodePair]) -> list[list[str | None]]:
-    """Try to parse the LaTeX directly with SymPy and evaluate at the inputs."""
-    from sympy.parsing.latex import parse_latex
+    """Try to parse the LaTeX directly with SymPy and evaluate at the inputs.
+
+    Requires the optional `baseline` extra (antlr4-python3-runtime==4.11.1),
+    which conflicts with hydra/omegaconf and so is not in [dev] or [train].
+    """
+    try:
+        from sympy.parsing.latex import parse_latex
+
+        parse_latex("x")  # probe: antlr4 runtime availability fails at call time
+    except Exception as exc:
+        raise RuntimeError(
+            "parse_latex unavailable: install the optional baseline extra in a "
+            "dedicated venv — `uv pip install -e '.[baseline]'` "
+            "(antlr4 4.11.x conflicts with hydra/omegaconf 4.9.x, so it is not "
+            "in the default extras)."
+        ) from exc
 
     predictions: list[list[str | None]] = []
     for p in pairs:

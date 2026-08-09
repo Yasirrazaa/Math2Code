@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from math2code.evaluation.baselines import (
     latex_parse_baseline,
     run_baseline,
@@ -39,6 +41,12 @@ def test_trivial_floor_scores(tmp_path) -> None:  # type: ignore[no-untyped-def]
 
 def test_latex_parse_baseline_never_crashes() -> None:
     """parse_latex may fail on exotic latex; the baseline must produce None."""
+    try:
+        from sympy.parsing.latex import parse_latex
+
+        parse_latex("x")
+    except Exception:
+        pytest.skip("optional `baseline` extra (antlr4 4.11.x) not installed")
     pairs = [_pair("a", [1.0, 2.0, 3.0])]
     preds = latex_parse_baseline(pairs)
     assert len(preds) == 1 and len(preds[0]) == 3
