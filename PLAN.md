@@ -97,11 +97,11 @@ The oracle is used at **data build time** (validate/tag samples) and at **RL rew
 
 | Framework | Route | When |
 |---|---|---|
-| **TRL 1.9.x** | `GRPOTrainer(reward_funcs=[...], args=GRPOConfig(use_vllm=True, vllm_mode="server", num_generations=8, scale_rewards="batch"))` + `environment_factory` (experimental — **pin TRL version**, verify API at start of Week 5) | Start here (single node) |
+| **TRL 1.9.x** | `GRPOTrainer(reward_funcs=[...], args=GRPOConfig(use_vllm=True, num_generations=8, scale_rewards="batch"))` — sandbox execution in the reward (already verified against 1.9.2; see `model/grpo.py` + `tests/test_grpo.py`) | Start here (single node) |
 | **OpenRLHF 0.10.x** | `--agent_func_path` multi-turn agent mode (Ray + vLLM) | If multi-node scaling needed |
 | **verl 0.8.x** | built-in `restricted_python` code-exec env, native step-level rewards | If step-level advantage needed (see §4.3) |
 
-**Critical implementation detail:** the injected `<observation>` tokens are *not* model-generated — the trainer must **mask them in logprobs/loss**, or the policy gradient is corrupted. Verify this in TRL's env loop before Week 6. Also cap `max_completion_length` accounting for multi-turn context growth (Phase 4 serves at `--max-model-len 8192`).
+**Status (Week 5, verified):** TRL 1.9.x's `environment_factory`/`BaseEnvironment` API was removed — 1.9.x environments are tool-calling based and don't fit base math models, so the shipped entrypoint is reward-funcs-only GRPO: the reward executes each completion's `<execute>` code in the sandbox against per-rollout resampled inputs, and `task_id` flows from the dataset column into reward kwargs. If observation-token masking is later required, it lives on the OpenRLHF/verl rung of the ladder, not TRL. Cap `max_completion_length` accounting for context growth (Phase 4 serves at `--max-model-len 8192`).
 
 ---
 
@@ -278,7 +278,7 @@ Notes: no `runtime: nvidia` (obsolete); `--enable-auto-tool-choice` is irrelevan
 | **2** | Data & sandbox | Competition data loader + dedup (~4k dupes removed) + HF Hub publish; local sandbox interface (nsjail + fallback) passing 10k-execution smoke in <5 min; oracle (syntactic + MC numeric + pole avoidance) unit-tested |
 | **3** | Baselines | 0-shot benchmarks (GPT-4o-mini, Claude, DeepSeek, Qwen2.5-Math, NuminaMath) + your 0.75 submission on the frozen test set → **first real table with CIs** |
 | **4** | SFT warmup | TIR-format SFT on competition data (subset) + adversarial-mutator hard negatives; eval vs Week-3 table |
-| **5** | TIR env loop + rewards | TRL `environment_factory` mock loop verified (multi-turn, no hangs, observation tokens masked); reward funcs implemented + unit-tested on static trajectories; **1.5B GRPO burn-in gate** (100-step sanity: rewards nonzero, no collapse) |
+| **5** | TIR env loop + rewards | Reward funcs unit-tested on static trajectories; TRL 1.9.x reward-func contract verified (sandbox execution in-reward, `task_id` via dataset column); **1.5B GRPO burn-in gate** (100-step sanity: rewards nonzero, no collapse) |
 | **6** | Full GRPO | 7B GRPO main run(s) on 4×A100; pass@1 monitored on frozen test during training |
 | **7** | Final eval | Same harness + E2B for production-grade numbers: **RL vs SFT vs all baselines**, pass@1/pass@k, CIs, error analysis by equation_type |
 | **8** | Production & publish | Docker stack green, Weave traces streaming, Gradio UI (live `<think>`/`<observation>`), HF model + dataset publish, README results table, model card, docs |
@@ -293,7 +293,7 @@ Notes: no `runtime: nvidia` (obsolete); `--enable-auto-tool-choice` is irrelevan
 |---|---|
 | Reward hacking / input memorization | fresh random inputs per rollout from `sympy_exp`; R_complexity only on correct answers; KL guard; frozen-test re-eval with *new* random inputs |
 | Tool-avoidance collapse | R_tool shaping, mild error penalty (−0.25 not −1), ≥1 forced execute in warmup SFT |
-| TRL `environment_factory` API churn (experimental) | pin TRL version; fallback ladder to OpenRLHF → verl; verify masking behavior in Week 5 |
+| TRL API churn (verified: 1.9.x dropped `environment_factory`/`BaseEnvironment`) | shipped entrypoint targets the verified 1.9.2 reward-func API; pin TRL version; fallback ladder to OpenRLHF → verl |
 | nsjail deployment friction | sandbox as interface with `python-seccomp` + Docker fallbacks; containerized CI with proper caps |
 | OOD test families (500 augmented_equation etc.) | explicit eval slice + error analysis; targeted data extension if RL underperforms there |
 | 7B GRPO cost overrun | 1.5B burn-in gate + fixed run budget ($1–3k cap) decided in advance |
