@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "families": [
+    "ode"
+  ],
+  "opts": {
+    "n_variants": 2
+  },
+  "generated": 40,
+  "contamination_dropped": 0,
+  "accepted": 40,
+  "rejected": 0,
+  "reject_reasons": {},
+  "sha256": "eef6498dedae51368ddb4980520bf8f01800b3a992d5545b99499381531ace24"
+}

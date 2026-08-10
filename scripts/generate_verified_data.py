@@ -82,7 +82,9 @@ def main() -> None:
 
     raw: list[MathCodePair] = []
     for fam in fam_names:
-        rows = FAMILIES[fam]().generate(args.seed, prefix=fam, count=args.count, **opts)
+        rows = FAMILIES[fam]().generate(  # type: ignore[abstract]
+            args.seed, prefix=fam, count=args.count, **opts
+        )
         raw.extend(rows)
         print(f"{fam}: generated {len(rows)} variant rows")
 

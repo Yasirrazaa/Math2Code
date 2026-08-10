@@ -1,0 +1,17 @@
+{
+  "seed": 42,
+  "families": [
+    "functions"
+  ],
+  "opts": {
+    "n_variants": 2
+  },
+  "generated": 80,
+  "contamination_dropped": 0,
+  "accepted": 76,
+  "rejected": 4,
+  "reject_reasons": {
+    "syntax": 4
+  },
+  "sha256": "02b08e9787f7d3309863081a2a71b575a10cbf6da9a012e59e7a91d94bf31f41"
+}

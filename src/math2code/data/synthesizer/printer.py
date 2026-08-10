@@ -65,10 +65,13 @@ class VariantPrinter(LatexPrinter):
         var, n = expr.variable_count[0]
         roll = self.rng.random()
         f_tex = self._print(func)
+        # Lagrange prime notation uses the function's own name: y' for y(x),
+        # \sin' for sin(x). Fall back to f' for nameless composites.
+        fname = getattr(getattr(func, "func", None), "__name__", None)
         if roll < 0.35:
-            if n == 1:
-                return "f'"
-            return f"f^{{({n})}}"
+            if fname:
+                return f"{fname}'" if n == 1 else f"{fname}^{{({n})}}"
+            return "f'" if n == 1 else f"f^{{({n})}}"
         if roll < 0.6 and n == 1:
             return f"\\frac{{d}}{{\\,d {self._print(var)}}} {f_tex}"
         if n == 1:

@@ -39,6 +39,12 @@ synth-definite:
 synth-variable:
 	python scripts/generate_verified_data.py --families integration --kind variable --count 40 --seed 42 --out data/synthetic/calculus_variable_v1.jsonl
 
+synth-functions:
+	python scripts/generate_verified_data.py --families functions --count 40 --seed 42 --out data/synthetic/functions_v1.jsonl
+
+synth-ode:
+	python scripts/generate_verified_data.py --families ode --count 20 --seed 42 --out data/synthetic/ode_v1.jsonl
+
 smoke-pool:
 	python scripts/smoke_pool.py
 

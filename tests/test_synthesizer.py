@@ -10,7 +10,9 @@ import sympy as sp
 
 from math2code.data.synthesizer import (
     DerivativeFamily,
+    FunctionVocabFamily,
     IntegralFamily,
+    ODEFamily,
     render_variants,
     sample_inputs,
 )
@@ -70,7 +72,7 @@ def test_derivative_variants_cover_leibniz_and_lagrange() -> None:
     for seed in range(20):
         forms.update(render_variants(d, seed=seed, n_variants=3))
     assert any("\\frac{d}{d" in s for s in forms)  # Leibniz
-    assert any("f'" in s or "f^{(" in s for s in forms)  # Lagrange
+    assert any("'" in s or "^{(" in s for s in forms)  # Lagrange (prime of named fn)
 
 
 # --------------------------------------------------------------------------
@@ -170,3 +172,63 @@ def test_variable_limit_integral_rows() -> None:
     for r in rows:
         assert r.metadata["kind"] == "variable_limit"
         assert "\\int" in r.latex_expression or "\\operatorname" in r.latex_expression
+
+
+# --------------------------------------------------------------------------
+# function-vocabulary family
+# --------------------------------------------------------------------------
+
+
+def test_functions_inverse_trig_domain() -> None:
+    rows = FunctionVocabFamily().generate(
+        seed=10, prefix="f", count=8, kind="inverse_trig"
+    )
+    assert rows
+    # real outputs (sampler realness gate) and bounded args for asin/acos/atan2
+    for r in rows:
+        assert r.output_type == "real"
+        x0 = r.test_cases[0].input.get("x", 0)
+        if r.metadata["vocab"] in ("asin", "acos", "atan2"):
+            assert abs(x0) <= 0.95
+
+
+def test_functions_complex_slice_string_outputs() -> None:
+    rows = FunctionVocabFamily().generate(seed=11, prefix="f", count=25)
+    complex_rows = [r for r in rows if r.output_type == "complex"]
+    assert complex_rows
+    from math2code.evaluation.metrics import parse_number
+
+    r = complex_rows[0]
+    vals = [parse_number(tc.output) for tc in r.test_cases]
+    # complex-valued cases are 're+imj' strings (JSON-safe); parse_number round-trips
+    assert any(
+        isinstance(tc.output, str) and tc.output.endswith("j") for tc in r.test_cases
+    )
+    assert any(abs(v.imag) > 1e-9 for v in vals)
+
+
+def test_functions_factorial_integer_domain() -> None:
+    rows = FunctionVocabFamily().generate(
+        seed=12, prefix="f", count=6, kind="factorial"
+    )
+    assert rows
+    for r in rows:
+        assert all(isinstance(tc.input["x"], int) for tc in r.test_cases)
+
+
+# --------------------------------------------------------------------------
+# ODE family: gates + oracle
+# --------------------------------------------------------------------------
+
+
+def test_ode_rows_pin_ics_and_pass_oracle() -> None:
+    rows = ODEFamily().generate(seed=13, prefix="o", count=5)
+    assert rows
+    with SandboxPool(n_workers=2, timeout_s=10, memory_mb=2048) as pool:
+        from math2code.data.oracle import oracle_verify
+
+        for r in rows:
+            assert "checkodesol" in r.metadata["family_gate"]
+            # IC at x=0 reproduced by the first case output
+            ok, reasons = oracle_verify(r, r.solution or "", pool=pool)
+            assert ok, f"{r.task_id}: {reasons}"

@@ -98,6 +98,8 @@ class SynthFamily(ABC):
         n_variants: int = 2,
         n_cases: int = 5,
         meta: dict[str, Any] | None = None,
+        sample_kwargs: dict[str, Any] | None = None,
+        equation_type: str | None = None,
     ) -> list[MathCodePair]:
         """One math object -> one row per LaTeX notation variant.
 
@@ -108,11 +110,22 @@ class SynthFamily(ABC):
         if not roundtrips(result_expr):
             return []  # gate 1: solution code would not construct the expr
         variants = render_variants(problem_expr, seed, n_variants=n_variants)
+        sopt: dict[str, Any] = {
+            "ints_only": False,
+            "low": -5.0,
+            "high": 5.0,
+            "log_scale": False,
+            "pole_margin": 0.2,
+            "allow_complex": False,
+        }
+        sopt.update(sample_kwargs or {})
         inputs = sample_inputs(
-            result_expr, variables, n_cases, int_seed(f"pair:{task_id}")
+            result_expr, variables, n_cases, int_seed(f"pair:{task_id}"), **sopt
         )
         if not inputs:
             return []
+
+        etype = equation_type or self.equation_type
 
         expected = []
         for inp in inputs:
@@ -146,13 +159,13 @@ class SynthFamily(ABC):
                         for inp, out in zip(inputs, expected)
                     ],
                     domain=self.domain,
-                    equation_type=self.equation_type,
+                    equation_type=etype,
                     complexity=complexity_of(result_expr),
                     output_type="complex" if complex_out else "real",
                     synthetic=True,
                     metadata={
                         "source": "code_first_synth",
-                        "family": self.equation_type,
+                        "family": etype,
                         "variant": i,
                         "n_variants": len(variants),
                         "family_gate": gate,
