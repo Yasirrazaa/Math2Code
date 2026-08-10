@@ -43,7 +43,8 @@ _SLICE_ORDER = [
     ("vocab", 0.20),
     ("multivariate", 0.15),
     ("ode", 0.10),
-    ("sequences", 0.10),
+    ("sequences", 0.05),
+    ("geometry", 0.05),
     ("rational", 0.10),
     ("edge", 0.05),
 ]
@@ -55,6 +56,8 @@ _DEFAULT_SYNTH = [
     "data/synthetic/functions_v1.jsonl",
     "data/synthetic/ode_v1.jsonl",
     "data/synthetic/multivariate_v1.jsonl",
+    "data/synthetic/sequences_v1.jsonl",
+    "data/synthetic/geometry_v1.jsonl",
 ]
 
 

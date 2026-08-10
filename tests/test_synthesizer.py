@@ -284,3 +284,29 @@ def test_build_mixture_deterministic_and_contamination_free() -> None:
     rows = [json.loads(line) for line in open(out_a)]
     assert len(rows) == 1000
     assert all("latex_expression" in r and "test_cases" in r for r in rows)
+
+
+def test_sequences_integer_indices() -> None:
+    from math2code.data.synthesizer import SequenceFamily
+
+    rows = SequenceFamily().generate(seed=5, prefix="s", count=6)
+    assert rows
+    assert all(r.equation_type == "sequences" for r in rows)
+    assert all(r.metadata["slice"] == "sequences" for r in rows)
+    for r in rows:
+        for tc in r.test_cases:
+            assert isinstance(tc.input["n"], int) and tc.input["n"] >= 1
+
+
+def test_geometry_positive_domain() -> None:
+    from math2code.data.synthesizer import GeometryFamily
+
+    rows = GeometryFamily().generate(seed=6, prefix="g", count=6)
+    assert rows
+    assert all(r.equation_type == "geometry" for r in rows)
+    for r in rows:
+        for tc in r.test_cases:
+            for v in tc.input.values():
+                assert abs(complex(v).real) > 0
+    # pi appears in some rows
+    assert any("\\pi" in r.latex_expression for r in rows)

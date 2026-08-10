@@ -9,9 +9,11 @@ inputs) before entering the training pool; the frozen split is never touched.
 from math2code.data.synthesizer.core import SynthFamily
 from math2code.data.synthesizer.families.derivative import DerivativeFamily
 from math2code.data.synthesizer.families.functions import FunctionVocabFamily
+from math2code.data.synthesizer.families.geometry import GeometryFamily
 from math2code.data.synthesizer.families.integral import IntegralFamily
 from math2code.data.synthesizer.families.multivariate import MultivariateFamily
 from math2code.data.synthesizer.families.ode import ODEFamily
+from math2code.data.synthesizer.families.sequences import SequenceFamily
 from math2code.data.synthesizer.printer import VariantPrinter, render_variants
 from math2code.data.synthesizer.sampler import sample_inputs
 
@@ -20,8 +22,10 @@ __all__ = [
     "DerivativeFamily",
     "IntegralFamily",
     "FunctionVocabFamily",
+    "GeometryFamily",
     "MultivariateFamily",
     "ODEFamily",
+    "SequenceFamily",
     "VariantPrinter",
     "render_variants",
     "sample_inputs",
@@ -31,6 +35,8 @@ FAMILIES = {
     "derivative": DerivativeFamily,
     "integration": IntegralFamily,
     "functions": FunctionVocabFamily,
+    "geometry": GeometryFamily,
     "multivariate": MultivariateFamily,
     "ode": ODEFamily,
+    "sequences": SequenceFamily,
 }

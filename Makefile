@@ -48,6 +48,12 @@ synth-ode:
 synth-multivariate:
 	python scripts/generate_verified_data.py --families multivariate --count 40 --seed 42 --out data/synthetic/multivariate_v1.jsonl
 
+synth-sequences:
+	python scripts/generate_verified_data.py --families sequences --count 25 --seed 42 --out data/synthetic/sequences_v1.jsonl
+
+synth-geometry:
+	python scripts/generate_verified_data.py --families geometry --count 25 --seed 42 --out data/synthetic/geometry_v1.jsonl
+
 # Training mixture: 65% frozen competition + 35% verified synthetic (caps),
 # latex-deduped, contamination-checked vs frozen test/val. Deterministic (seed 42).
 mixture:
