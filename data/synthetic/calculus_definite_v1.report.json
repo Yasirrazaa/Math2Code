@@ -7,10 +7,10 @@
     "kind": "definite",
     "n_variants": 2
   },
-  "generated": 80,
+  "generated": 600,
   "contamination_dropped": 0,
-  "accepted": 80,
+  "accepted": 600,
   "rejected": 0,
   "reject_reasons": {},
-  "sha256": "8580b8b670318b87296b9bdf7ace9c3626b80b7aebf7a58e548bbd2fecefb7c8"
+  "sha256": "ed02c841bbb26c9e0c5f62b9fc0d83276fda3df0a2632a2dac902f52cb772efd"
 }

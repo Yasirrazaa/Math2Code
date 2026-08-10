@@ -29,6 +29,8 @@ FAMILY_FILES = [
     "multivariate_v1.jsonl",
     "sequences_v1.jsonl",
     "geometry_v1.jsonl",
+    "edge_v1.jsonl",
+    "numtheory_v1.jsonl",
 ]
 
 _FUNCS = (

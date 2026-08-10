@@ -69,13 +69,16 @@ def sample_inputs(
     log_scale: bool = False,
     pole_margin: float = 0.2,
     allow_complex: bool = False,
+    eval_gate: bool = True,
 ) -> list[dict[str, Any]]:
     """Sample `n` input dicts where `expr` is defined and finite.
 
     Inputs are the ground-truth variable names (competition-style). Values may
     be int/float; complex values are not sampled here (complex slice later).
     Points where the ground truth evaluates to a complex number are rejected
-    unless `allow_complex=True` (keeps real-output rows honest).
+    unless `allow_complex=True` (keeps real-output rows honest). Families
+    whose truth is not an evaluable AST (truth_code families like gcd/lcm)
+    declare `eval_gate=False` and guarantee definedness themselves.
     """
     rng = random.Random(int_seed(f"sampler:{seed}"))
     poles = denominator_roots(expr)
@@ -99,18 +102,19 @@ def sample_inputs(
             point[str(var)] = v
         if not ok:
             continue
-        # finiteness + realness gate: ground truth must evaluate to a finite
-        # (and, unless allow_complex, real) number at the point
-        subs = {var: sp.Float(point[str(var)]) for var in variables}
-        try:
-            val = sp.N(expr.subs(subs))
-        except Exception:
-            continue
-        if not val.is_finite:
-            continue
-        if val.has(sp.I) and not allow_complex:
-            continue
-        if val.has(sp.I) is False and abs(complex(val)) > 1e12:
-            continue  # numeric-stability guard for real outputs
+        if eval_gate:
+            # finiteness + realness gate: ground truth must evaluate to a finite
+            # (and, unless allow_complex, real) number at the point
+            subs = {var: sp.Float(point[str(var)]) for var in variables}
+            try:
+                val = sp.N(expr.subs(subs))
+            except Exception:
+                continue
+            if not val.is_finite:
+                continue
+            if val.has(sp.I) and not allow_complex:
+                continue
+            if val.has(sp.I) is False and abs(complex(val)) > 1e12:
+                continue  # numeric-stability guard for real outputs
         out.append(point)
     return out

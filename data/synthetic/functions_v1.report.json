@@ -6,12 +6,12 @@
   "opts": {
     "n_variants": 2
   },
-  "generated": 80,
+  "generated": 1600,
   "contamination_dropped": 0,
-  "accepted": 76,
-  "rejected": 4,
+  "accepted": 1568,
+  "rejected": 32,
   "reject_reasons": {
-    "syntax": 4
+    "syntax": 32
   },
-  "sha256": "35a06e1cf558188b0683e143d57cf714c8bf35aef4f0e18bc4e6fb1809c12278"
+  "sha256": "0fe5b9a7353c127eea6d42c041b59d4378bac0a298093d1bfd43d577d24d3869"
 }

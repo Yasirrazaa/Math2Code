@@ -100,14 +100,17 @@ class SynthFamily(ABC):
         meta: dict[str, Any] | None = None,
         sample_kwargs: dict[str, Any] | None = None,
         equation_type: str | None = None,
+        custom_code: tuple[str, str] | None = None,
     ) -> list[MathCodePair]:
         """One math object -> one row per LaTeX notation variant.
 
-        Each variant shares the task base id (suffixed `:v0`, `:v1`, ...) so
-        variant families stay traceable. Expected outputs come from the
-        ground-truth AST at sampled inputs.
+        `custom_code=(solution, truth_code)` switches the family off the
+        sympify-embedding path: both strings are full `calculate(...)`
+        functions, `truth_code` is the ground truth executed by the oracle in
+        the same sandbox contract (gcd/lcm/digit-op families). `problem_expr`
+        is then used for LaTeX rendering only (e.g. Function("gcd")(a, b)).
         """
-        if not roundtrips(result_expr):
+        if custom_code is None and not roundtrips(result_expr):
             return []  # gate 1: solution code would not construct the expr
         variants = render_variants(problem_expr, seed, n_variants=n_variants)
         sopt: dict[str, Any] = {
@@ -119,6 +122,8 @@ class SynthFamily(ABC):
             "allow_complex": False,
         }
         sopt.update(sample_kwargs or {})
+        if custom_code is not None:
+            sopt["eval_gate"] = False  # truth is code; family guarantees definedness
         inputs = sample_inputs(
             result_expr, variables, n_cases, int_seed(f"pair:{task_id}"), **sopt
         )
@@ -127,13 +132,33 @@ class SynthFamily(ABC):
 
         etype = equation_type or self.equation_type
 
-        expected = []
-        for inp in inputs:
-            subs = {v: sp.Float(inp[str(v)]) for v in variables}
-            expected.append(_to_complex(sp.N(result_expr.subs(subs))))
+        if custom_code is not None:
+            # truth is code: run truth_code in the sandbox contract to get the
+            # expected outputs for the committed test cases (gcd/lcm families)
+            from math2code.sandbox.base import execute_code
+
+            expected: list[complex] = []
+            for inp in inputs:
+                res = execute_code(custom_code[1], inputs=inp)
+                if not res.ok:
+                    return []
+                from math2code.evaluation.metrics import parse_number
+
+                try:
+                    expected.append(parse_number(res.stdout))
+                except (ValueError, TypeError):
+                    return []
+        else:
+            expected = []
+            for inp in inputs:
+                subs = {v: sp.Float(inp[str(v)]) for v in variables}
+                expected.append(_to_complex(sp.N(result_expr.subs(subs))))
 
         complex_out = any(abs(c.imag) > 1e-12 for c in expected)
-        code = solution_code(result_expr, variables, complex_out)
+        code, truth_code = custom_code or (
+            solution_code(result_expr, variables, complex_out),
+            None,
+        )
         gate = self._gate(result_expr)
 
         # complex is not JSON-serializable: real outputs stay floats (competition
@@ -153,7 +178,8 @@ class SynthFamily(ABC):
                     task_id=f"{task_id}:v{i}",
                     latex_expression=tex,
                     solution=code,
-                    sympy_exp=sp.sstr(result_expr),
+                    sympy_exp="" if truth_code else sp.sstr(result_expr),
+                    truth_code=truth_code,
                     test_cases=[
                         TestCase(input=inp, output=_out(out))
                         for inp, out in zip(inputs, expected)

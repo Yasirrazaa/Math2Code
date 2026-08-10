@@ -7,10 +7,12 @@
     "kind": "variable",
     "n_variants": 2
   },
-  "generated": 80,
+  "generated": 600,
   "contamination_dropped": 0,
-  "accepted": 80,
-  "rejected": 0,
-  "reject_reasons": {},
-  "sha256": "b465379271ce0f7bba8698738aad55dd24f10ad54302ddf16eafa9c7477743c6"
+  "accepted": 595,
+  "rejected": 5,
+  "reject_reasons": {
+    "syntax": 5
+  },
+  "sha256": "9d6cafa9dfc34ec067f10121d136937ac3e328b8e83bb4c0b4f3e527365dd91e"
 }

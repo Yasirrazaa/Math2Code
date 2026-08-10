@@ -32,6 +32,9 @@ class MathCodePair(BaseModel):
     latex_expression: str
     solution: str | None = None  # canonical key: runnable python code
     sympy_exp: str | None = None  # ground-truth sympy expression (when available)
+    truth_code: str | None = None  # ground-truth CODE when the truth is not
+    # sympify-expressible (e.g. gcd/lcm/digit ops: math.gcd(a, b)). Takes
+    # precedence over sympy_exp in the oracle; same contract as solution.
     test_cases: list[TestCase] = Field(default_factory=list)
     domain: str | None = None
     equation_type: str | None = None

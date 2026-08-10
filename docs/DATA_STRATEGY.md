@@ -211,12 +211,14 @@ both retained, frozen test/val untouched.
 
 ## 8. Blueprint audit (code-first synthesizer) — validated with corrections
 
-**Status: implementation in progress.** `src/math2code/data/synthesizer/`
-(printer + sampler + core + derivative/integral/function-vocab/ODE/multivariate
+**Status: implementation complete for all eight strategy slices.**
+`src/math2code/data/synthesizer/` (printer + sampler + core + derivative/
+integral/function-vocab/ODE/multivariate/sequences/geometry/edge/numtheory
 families + verify) is built; `make synth*` generates oracle-verified rows into
-`data/synthetic/`, `make mixture` builds the 65/35 training mixture. 99 tests
-pass. Remaining: sequences/geometry/number-theory families, edge-case slice,
-distribution-shape pass (complexity rebalance), training-time loader wiring.
+`data/synthetic/` (7,450-row pool), `make mixture` builds the 65/35 mixture
+(21.5k rows, all slices). The `truth_code` contract extends the oracle to
+families whose truth is code (gcd/lcm). 105 tests pass. Remaining: nothing
+blocking — user-run W3 API baselines + GPU training consume this dataset.
 
 Verdict: the code-first synthesis + notation-mutation + family-specific
 verification architecture is correct and is the implementation path. Every

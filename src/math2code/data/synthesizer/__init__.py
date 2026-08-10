@@ -13,6 +13,7 @@ from math2code.data.synthesizer.families.functions import FunctionVocabFamily
 from math2code.data.synthesizer.families.geometry import GeometryFamily
 from math2code.data.synthesizer.families.integral import IntegralFamily
 from math2code.data.synthesizer.families.multivariate import MultivariateFamily
+from math2code.data.synthesizer.families.numtheory import NumberTheoryFamily
 from math2code.data.synthesizer.families.ode import ODEFamily
 from math2code.data.synthesizer.families.sequences import SequenceFamily
 from math2code.data.synthesizer.printer import VariantPrinter, render_variants
@@ -26,6 +27,7 @@ __all__ = [
     "FunctionVocabFamily",
     "GeometryFamily",
     "MultivariateFamily",
+    "NumberTheoryFamily",
     "ODEFamily",
     "SequenceFamily",
     "VariantPrinter",
@@ -40,6 +42,7 @@ FAMILIES = {
     "functions": FunctionVocabFamily,
     "geometry": GeometryFamily,
     "multivariate": MultivariateFamily,
+    "numtheory": NumberTheoryFamily,
     "ode": ODEFamily,
     "sequences": SequenceFamily,
 }

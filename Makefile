@@ -29,33 +29,36 @@ eval-gold:
 	python -m math2code.evaluation.eval gold --split data/split/test.json --n 100
 
 # Code-first synthetic data: generate + oracle-verify (accept/reject)
-# default: 160 derivative/integration rows -> data/synthetic/calculus_indefinite_v1.jsonl
+# default: 400 derivative/integration objects -> data/synthetic/calculus_indefinite_v1.jsonl
 synth:
-	python scripts/generate_verified_data.py --families derivative,integration --kind indefinite --count 40 --seed 42 --out data/synthetic/calculus_indefinite_v1.jsonl
+	python scripts/generate_verified_data.py --families derivative,integration --kind indefinite --count 400 --seed 42 --out data/synthetic/calculus_indefinite_v1.jsonl
 
 synth-definite:
-	python scripts/generate_verified_data.py --families integration --kind definite --count 40 --seed 42 --out data/synthetic/calculus_definite_v1.jsonl
+	python scripts/generate_verified_data.py --families integration --kind definite --count 300 --seed 42 --out data/synthetic/calculus_definite_v1.jsonl
 
 synth-variable:
-	python scripts/generate_verified_data.py --families integration --kind variable --count 40 --seed 42 --out data/synthetic/calculus_variable_v1.jsonl
+	python scripts/generate_verified_data.py --families integration --kind variable --count 300 --seed 42 --out data/synthetic/calculus_variable_v1.jsonl
 
 synth-functions:
-	python scripts/generate_verified_data.py --families functions --count 40 --seed 42 --out data/synthetic/functions_v1.jsonl
+	python scripts/generate_verified_data.py --families functions --count 800 --seed 42 --out data/synthetic/functions_v1.jsonl
 
 synth-ode:
-	python scripts/generate_verified_data.py --families ode --count 20 --seed 42 --out data/synthetic/ode_v1.jsonl
+	python scripts/generate_verified_data.py --families ode --count 350 --seed 42 --out data/synthetic/ode_v1.jsonl
 
 synth-multivariate:
-	python scripts/generate_verified_data.py --families multivariate --count 40 --seed 42 --out data/synthetic/multivariate_v1.jsonl
+	python scripts/generate_verified_data.py --families multivariate --count 600 --seed 42 --out data/synthetic/multivariate_v1.jsonl
 
 synth-sequences:
-	python scripts/generate_verified_data.py --families sequences --count 25 --seed 42 --out data/synthetic/sequences_v1.jsonl
+	python scripts/generate_verified_data.py --families sequences --count 200 --seed 42 --out data/synthetic/sequences_v1.jsonl
 
 synth-geometry:
-	python scripts/generate_verified_data.py --families geometry --count 25 --seed 42 --out data/synthetic/geometry_v1.jsonl
+	python scripts/generate_verified_data.py --families geometry --count 200 --seed 42 --out data/synthetic/geometry_v1.jsonl
 
 synth-edge:
-	python scripts/generate_verified_data.py --families edge --count 25 --seed 42 --out data/synthetic/edge_v1.jsonl
+	python scripts/generate_verified_data.py --families edge --count 200 --seed 42 --out data/synthetic/edge_v1.jsonl
+
+synth-numtheory:
+	python scripts/generate_verified_data.py --families numtheory --count 400 --seed 42 --out data/synthetic/numtheory_v1.jsonl
 
 # Training mixture: 65% frozen competition + 35% verified synthetic (caps),
 # latex-deduped, contamination-checked vs frozen test/val. Deterministic (seed 42).

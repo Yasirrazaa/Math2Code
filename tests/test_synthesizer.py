@@ -359,3 +359,55 @@ def test_edge_logscale_and_sqrt_trap() -> None:
         x = _cf(tc.input["x"])
         # truth is |x| + c (never x + c for negative x)
         assert _cf(tc.output) == abs(x) + c
+
+
+def test_numtheory_truth_code_contract() -> None:
+    """gcd/lcm: truth is code, not sympify; oracle verifies via truth_code."""
+    from math2code.data.synthesizer import NumberTheoryFamily
+
+    rows = NumberTheoryFamily().generate(seed=4, prefix="nt", count=3)
+    assert rows
+    r = rows[0]
+    assert r.truth_code is not None  # truth_code path engaged
+    assert not r.sympy_exp  # no sympify truth for these families
+    assert r.equation_type == "number_theory"
+    # exact integer outputs
+    for tc in r.test_cases:
+        assert float(complex(tc.output).real).is_integer()  # type: ignore[call-overload, arg-type]
+
+    # the oracle must ACCEPT the rows: candidate == truth on fresh inputs
+    with SandboxPool(n_workers=2, timeout_s=10, memory_mb=2048) as pool:
+        from math2code.data.oracle import oracle_verify
+
+        for row in rows:
+            ok, reasons = oracle_verify(row, row.solution or "", pool=pool)
+            assert ok, f"{row.task_id}: {reasons}"
+
+
+def test_mixture_keeps_parameterized_latex_dupes() -> None:
+    """gcd rows share one latex but differ in test outputs — all kept."""
+    import json
+    import subprocess
+    import sys
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "scripts/build_mixture.py",
+            "--size",
+            "1000",
+            "--out",
+            "/tmp/mix_nt.jsonl",
+        ],
+        cwd=".",
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stderr[-500:]
+    rows = [json.loads(line) for line in open("/tmp/mix_nt.jsonl")]
+    numtheory = [r for r in rows if r.get("equation_type") == "number_theory"]
+    assert len(numtheory) >= 10  # parameterized dupes survive the dedupe
+    # outputs differ across gcd rows sharing the same latex
+    latexes = {r["latex_expression"] for r in numtheory}
+    outputs = {tuple(tc["output"] for tc in r["test_cases"]) for r in numtheory}
+    assert len(latexes) < len(outputs)  # same latex, different problems

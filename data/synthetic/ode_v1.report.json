@@ -6,10 +6,10 @@
   "opts": {
     "n_variants": 2
   },
-  "generated": 40,
+  "generated": 700,
   "contamination_dropped": 0,
-  "accepted": 40,
+  "accepted": 700,
   "rejected": 0,
   "reject_reasons": {},
-  "sha256": "669964c7976f3de31451c26f0bae9d45c7fc1670183e6abc9503368a81a34496"
+  "sha256": "4b391f0216d51bdc17851d39e4274692df7d2c0b694ffc80d91da42601bf5860"
 }

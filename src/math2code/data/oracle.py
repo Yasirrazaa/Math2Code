@@ -72,21 +72,48 @@ def numeric_check(
     seed: int = 0,
     pool: SandboxPool | None = None,
 ) -> tuple[bool, str]:
-    """Compare candidate vs ground truth on random inputs (pole-avoiding)."""
-    expr = _parse_ground_truth(pair)
-    if expr is None:
-        return False, "no ground-truth sympy_exp to compare against"
+    """Compare candidate vs ground truth on random inputs (pole-avoiding).
+
+    Ground truth is either the sympy_exp (symbolic path) or, when the pair
+    carries `truth_code` (gcd/lcm/digit-op families), the truth CODE executed
+    in the same sandbox contract — symmetric to the candidate so an honest
+    family can never hide behind a wrong truth.
+    """
     rng = random.Random(f"oracle:{pair.task_id}:{seed}")
     inputs = _sample_points(pair, n, rng)
 
-    # ground-truth outputs via sympy (deterministic, no sandbox needed)
-    gt_outputs: list[complex | None] = []
-    for inp in inputs:
-        subs = {sp.Symbol(k): v for k, v in inp.items()}
-        try:
-            gt_outputs.append(complex(expr.subs(subs).evalf()))
-        except Exception:
-            gt_outputs.append(None)
+    # ground-truth outputs: truth_code (sandbox) XOR sympy_exp (deterministic)
+    if pair.truth_code:
+        if pool is not None:
+            gt_outputs, errors = pool.run_solution_on_cases(pair.truth_code, inputs)
+            if any(o is None for o in gt_outputs):
+                return False, f"truth code failed to run: {errors[0][:120]}"
+        else:
+            gt_outputs = []
+            for inp in inputs:
+                res = execute_code(pair.truth_code, inputs=inp)
+                if not res.ok:
+                    return False, f"truth code failed to run: {res.stderr[:120]}"
+                gt_outputs.append(res.stdout)
+        gt_complex: list[complex | None] = []
+        from math2code.evaluation.metrics import parse_number
+
+        for s in gt_outputs:
+            try:
+                gt_complex.append(parse_number(s))
+            except (ValueError, TypeError):
+                gt_complex.append(None)
+    else:
+        expr = _parse_ground_truth(pair)
+        if expr is None:
+            return False, "no ground-truth sympy_exp to compare against"
+        gt_complex = []
+        for inp in inputs:
+            subs = {sp.Symbol(k): v for k, v in inp.items()}
+            try:
+                gt_complex.append(complex(expr.subs(subs).evalf()))
+            except Exception:
+                gt_complex.append(None)
 
     # candidate outputs via the sandbox
     if pool is not None:
@@ -103,7 +130,7 @@ def numeric_check(
 
     from math2code.evaluation.metrics import parse_number
 
-    for i, (cand, gt) in enumerate(zip(cand_outputs, gt_outputs)):
+    for i, (cand, gt) in enumerate(zip(cand_outputs, gt_complex)):
         if gt is None or not cmath.isfinite(gt):
             continue  # skip points where ground truth itself is undefined
         try:

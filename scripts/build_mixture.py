@@ -43,8 +43,9 @@ _SLICE_ORDER = [
     ("vocab", 0.20),
     ("multivariate", 0.15),
     ("ode", 0.10),
-    ("sequences", 0.05),
-    ("geometry", 0.05),
+    ("sequences", 0.04),
+    ("geometry", 0.03),
+    ("numtheory", 0.03),
     ("rational", 0.10),
     ("edge", 0.05),
 ]
@@ -59,6 +60,7 @@ _DEFAULT_SYNTH = [
     "data/synthetic/sequences_v1.jsonl",
     "data/synthetic/geometry_v1.jsonl",
     "data/synthetic/edge_v1.jsonl",
+    "data/synthetic/numtheory_v1.jsonl",
 ]
 
 
@@ -94,7 +96,7 @@ def main() -> int:
 
     # -- verified synthetic -------------------------------------------------
     synth: list[dict] = []
-    seen: set[str] = set()
+    seen: set[tuple[str, tuple[str, ...]]] = set()
     for path in args.synthetic:
         try:
             rows = load_jsonl(path)
@@ -102,10 +104,16 @@ def main() -> int:
             print(f"  missing synthetic file (skipping): {path}")
             continue
         for r in rows:
-            tex = r["latex_expression"]
-            if tex in seen or tex in comp_latex:
+            # dedupe key = (latex, outputs): parameterized families (gcd/lcm)
+            # legitimately repeat a latex with different test inputs (like the
+            # competition's jittered variants); identical pairs are dupes.
+            key = (
+                r["latex_expression"],
+                tuple(str(tc["output"]) for tc in r.get("test_cases", [])),
+            )
+            if key in seen or r["latex_expression"] in comp_latex:
                 continue
-            seen.add(tex)
+            seen.add(key)
             synth.append(r)
     print(f"synthetic: {len(synth)} oracle-verified rows loaded (latex-deduped)")
 
