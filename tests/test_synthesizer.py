@@ -310,3 +310,19 @@ def test_geometry_positive_domain() -> None:
                 assert abs(complex(v).real) > 0
     # pi appears in some rows
     assert any("\\pi" in r.latex_expression for r in rows)
+
+
+def test_summary_synthetic_runs_and_is_honest() -> None:
+    import subprocess
+    import sys
+
+    proc = subprocess.run(
+        [sys.executable, "scripts/summary_synthetic.py"],
+        cwd=".",
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stderr[-500:]
+    assert "frozen train" in proc.stdout
+    assert "synthetic pool" in proc.stdout
+    assert "complexity histogram" in proc.stdout

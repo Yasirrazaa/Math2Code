@@ -33,10 +33,29 @@ make eval-gold                         # sanity: 1.0000 (397/397) BEFORE any tra
 
 ## 2. SFT warmup (free T4)
 
+By default SFT trains on the **verified synthetic mixture** (65% frozen
+competition + 35% oracle-verified synthetic, latex-deduped, contamination-
+checked):
+
+```bash
+make mixture   # rebuilds data/synthetic/train_mixture_v1.jsonl (seeded, byte-identical)
+python scripts/summary_synthetic.py   # distribution-shape report (rebalance evidence)
+```
+
 ```bash
 python -m math2code.model.train model=Qwen/Qwen2.5-Math-1.5B \
   format=sft train_file=./data/split/train.jsonl \
   output_dir=./runs/sft-warmup-1.5b \
+  num_train_epochs=1 per_device_train_batch_size=4 gradient_accumulation_steps=8
+```
+
+To train on the mixture instead of the frozen train split:
+
+```bash
+python -m math2code.model.train model=Qwen/Qwen2.5-Math-1.5B \
+  data.use_mixture=true data.mixture_file=./data/synthetic/train_mixture_v1.jsonl \
+  format=sft train_file=./data/synthetic/train_mixture_v1.jsonl \
+  output_dir=./runs/sft-warmup-1.5b-mix \
   num_train_epochs=1 per_device_train_batch_size=4 gradient_accumulation_steps=8
 ```
 

@@ -29,3 +29,8 @@ training:
 data:
   # Competition data exported to JSON-lines (see scripts/export_train.py) or HF Hub
   train_file: "./data/train_curated.jsonl"
+  # Data flywheel: verified synthetic mixture (make mixture). When use_mixture
+  # is true and mixture_file exists, training uses it instead of train_file.
+  # The frozen split is never modified by the flywheel.
+  use_mixture: true
+  mixture_file: "./data/synthetic/train_mixture_v1.jsonl"

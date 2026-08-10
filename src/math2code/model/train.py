@@ -43,17 +43,26 @@ def train() -> None:  # pragma: no cover - requires GPU stack
 
     @hydra.main(version_base=None, config_path="../../../configs", config_name="train")
     def _run(cfg: DictConfig) -> None:
+        import os
+
         import torch  # noqa: F401  (GPU stack; only needed when actually training)
         from datasets import load_dataset
         from peft import LoraConfig
         from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
         from trl import SFTTrainer
 
-        dataset = load_dataset("json", data_files=cfg.data.train_file, split="train")
+        # data flywheel: prefer the verified synthetic mixture when present
+        # (built by `make mixture`; the frozen split is never modified)
+        train_file = str(cfg.data.train_file)
+        mixture = str(cfg.data.get("mixture_file", ""))
+        if cfg.data.get("use_mixture", False) and mixture and os.path.exists(mixture):
+            train_file = mixture
+        print(f"training on: {train_file}")
+
+        dataset = load_dataset("json", data_files=train_file, split="train")
         dataset = dataset.map(
             lambda s: format_instruction(s, format=cfg.training.get("format", "sft"))
         )
-
         # 2. Model & tokenizer
         tokenizer = AutoTokenizer.from_pretrained(cfg.model.base_model)
         tokenizer.pad_token = tokenizer.eos_token
