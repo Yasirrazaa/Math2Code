@@ -54,6 +54,9 @@ synth-sequences:
 synth-geometry:
 	python scripts/generate_verified_data.py --families geometry --count 25 --seed 42 --out data/synthetic/geometry_v1.jsonl
 
+synth-edge:
+	python scripts/generate_verified_data.py --families edge --count 25 --seed 42 --out data/synthetic/edge_v1.jsonl
+
 # Training mixture: 65% frozen competition + 35% verified synthetic (caps),
 # latex-deduped, contamination-checked vs frozen test/val. Deterministic (seed 42).
 mixture:

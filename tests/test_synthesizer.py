@@ -326,3 +326,36 @@ def test_summary_synthetic_runs_and_is_honest() -> None:
     assert "frozen train" in proc.stdout
     assert "synthetic pool" in proc.stdout
     assert "complexity histogram" in proc.stdout
+
+
+def test_edge_logscale_and_sqrt_trap() -> None:
+    from math2code.data.synthesizer import EdgeCaseFamily
+
+    rows = EdgeCaseFamily().generate(seed=8, prefix="e", count=10)
+    assert rows
+    assert all(r.metadata["slice"] == "edge" for r in rows)
+    # logscale rows span orders of magnitude
+    ls = [r for r in rows if r.metadata["vocab"] == "logscale_poly"]
+    if ls:
+        mags = [
+            abs(complex(tc.output).real)  # type: ignore[call-overload, arg-type]
+            for r in ls
+            for tc in r.test_cases
+            if abs(complex(tc.output).real) > 0  # type: ignore[call-overload, arg-type]
+        ]
+        assert max(mags) > 1e3  # log-scale magnitudes reach large values
+    # sqrt(x**2) trap: truth at negative x is |x| + c (never x + c)
+    trap = [r for r in rows if r.metadata["vocab"] == "sqrt_sq_trap"]
+    assert trap
+    r = trap[0]
+
+    def _cf(v: object) -> float:  # type: ignore[misc]
+        return complex(v).real  # type: ignore[call-overload, no-any-return]
+
+    x0 = _cf(r.test_cases[0].input["x"])
+    c = round(_cf(r.test_cases[0].output) - abs(x0))
+    assert 1 <= c <= 5  # template constant
+    for tc in r.test_cases:
+        x = _cf(tc.input["x"])
+        # truth is |x| + c (never x + c for negative x)
+        assert _cf(tc.output) == abs(x) + c

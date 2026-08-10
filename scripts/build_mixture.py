@@ -58,6 +58,7 @@ _DEFAULT_SYNTH = [
     "data/synthetic/multivariate_v1.jsonl",
     "data/synthetic/sequences_v1.jsonl",
     "data/synthetic/geometry_v1.jsonl",
+    "data/synthetic/edge_v1.jsonl",
 ]
 
 

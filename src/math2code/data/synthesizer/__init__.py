@@ -8,6 +8,7 @@ inputs) before entering the training pool; the frozen split is never touched.
 
 from math2code.data.synthesizer.core import SynthFamily
 from math2code.data.synthesizer.families.derivative import DerivativeFamily
+from math2code.data.synthesizer.families.edge import EdgeCaseFamily
 from math2code.data.synthesizer.families.functions import FunctionVocabFamily
 from math2code.data.synthesizer.families.geometry import GeometryFamily
 from math2code.data.synthesizer.families.integral import IntegralFamily
@@ -20,6 +21,7 @@ from math2code.data.synthesizer.sampler import sample_inputs
 __all__ = [
     "SynthFamily",
     "DerivativeFamily",
+    "EdgeCaseFamily",
     "IntegralFamily",
     "FunctionVocabFamily",
     "GeometryFamily",
@@ -33,6 +35,7 @@ __all__ = [
 
 FAMILIES = {
     "derivative": DerivativeFamily,
+    "edge": EdgeCaseFamily,
     "integration": IntegralFamily,
     "functions": FunctionVocabFamily,
     "geometry": GeometryFamily,
