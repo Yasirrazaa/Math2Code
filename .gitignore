@@ -57,3 +57,6 @@ wandb/
 
 # synthetic-data runtime artifacts (regenerate with make synth)
 data/synthetic/*.rejected.json
+
+# regenerable training mixture (~20 MB; `make mixture` rebuilds it byte-identically)
+data/synthetic/train_mixture*.jsonl

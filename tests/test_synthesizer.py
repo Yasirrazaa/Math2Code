@@ -232,3 +232,55 @@ def test_ode_rows_pin_ics_and_pass_oracle() -> None:
             # IC at x=0 reproduced by the first case output
             ok, reasons = oracle_verify(r, r.solution or "", pool=pool)
             assert ok, f"{r.task_id}: {reasons}"
+
+
+# --------------------------------------------------------------------------
+# multivariate family + training mixture
+# --------------------------------------------------------------------------
+
+
+def test_multivariate_cross_terms_and_metadata() -> None:
+    from math2code.data.synthesizer import MultivariateFamily
+
+    rows = MultivariateFamily().generate(seed=7, prefix="m", count=10)
+    assert rows
+    assert all(r.metadata["cross_terms"] is True for r in rows)
+    assert all(r.metadata["n_vars"] >= 2 for r in rows)
+    assert any(r.metadata["coefficient_kind"] == "decimal" for r in rows)
+    assert any(r.metadata["vocab"] == "augmented" for r in rows)
+    assert any(r.equation_type == "rational_multivariate" for r in rows)
+
+
+def test_build_mixture_deterministic_and_contamination_free() -> None:
+    import hashlib
+    import subprocess
+    import sys
+
+    out_a = "/tmp/mix_test_a.jsonl"
+    out_b = "/tmp/mix_test_b.jsonl"
+    for out in (out_a, out_b):
+        proc = subprocess.run(
+            [
+                sys.executable,
+                "scripts/build_mixture.py",
+                "--size",
+                "1000",
+                "--out",
+                out,
+            ],
+            cwd=".",
+            capture_output=True,
+            text=True,
+        )
+        assert proc.returncode == 0, proc.stderr[-500:]
+        assert "CONTAMINATION" not in proc.stdout
+    a = hashlib.sha256(open(out_a, "rb").read()).digest()
+    b = hashlib.sha256(open(out_b, "rb").read()).digest()
+    assert a == b  # seeded determinism -> byte-identical artifact
+
+    # every row in the mixture carries the competition/synthetic contract
+    import json
+
+    rows = [json.loads(line) for line in open(out_a)]
+    assert len(rows) == 1000
+    assert all("latex_expression" in r and "test_cases" in r for r in rows)

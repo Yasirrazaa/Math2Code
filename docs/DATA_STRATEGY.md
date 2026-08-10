@@ -212,10 +212,11 @@ both retained, frozen test/val untouched.
 ## 8. Blueprint audit (code-first synthesizer) — validated with corrections
 
 **Status: implementation in progress.** `src/math2code/data/synthesizer/`
-(printer + sampler + core + derivative/integral families + verify) is built;
-`make synth` generates and oracle-verifies a 160-row calculus sample into
-`data/synthetic/`. 93 tests pass. Remaining: function-vocabulary families,
-ODE family, contamination-robust metadata slicing, training-time mixture.
+(printer + sampler + core + derivative/integral/function-vocab/ODE/multivariate
+families + verify) is built; `make synth*` generates oracle-verified rows into
+`data/synthetic/`, `make mixture` builds the 65/35 training mixture. 99 tests
+pass. Remaining: sequences/geometry/number-theory families, edge-case slice,
+distribution-shape pass (complexity rebalance), training-time loader wiring.
 
 Verdict: the code-first synthesis + notation-mutation + family-specific
 verification architecture is correct and is the implementation path. Every

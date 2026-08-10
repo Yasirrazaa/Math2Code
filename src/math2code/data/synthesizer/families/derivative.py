@@ -89,6 +89,7 @@ class DerivativeFamily(SynthFamily):
                 [_X],
                 int_seed(f"derivative:{seed}:{i}"),
                 n_variants=int(opts.get("n_variants", 2)),
+                meta={"slice": "calculus"},
             )
             out.extend(rows)
         return out[: count * 2]

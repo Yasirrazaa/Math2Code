@@ -101,7 +101,11 @@ class IntegralFamily(SynthFamily):
                         f,
                         [],
                         n_variants,
-                        meta={"kind": "definite", "limits": [lo, hi]},
+                        meta={
+                            "kind": "definite",
+                            "limits": [lo, hi],
+                            "slice": "calculus",
+                        },
                     )
                 )
             elif kind == "variable":
@@ -117,7 +121,7 @@ class IntegralFamily(SynthFamily):
                         f,
                         [_X],
                         n_variants,
-                        meta={"kind": "variable_limit"},
+                        meta={"kind": "variable_limit", "slice": "calculus"},
                     )
                 )
             else:  # indefinite
@@ -134,7 +138,7 @@ class IntegralFamily(SynthFamily):
                         f,
                         [_X],
                         n_variants,
-                        meta={"kind": "indefinite"},
+                        meta={"kind": "indefinite", "slice": "calculus"},
                     )
                 )
         return out[: count * 2]

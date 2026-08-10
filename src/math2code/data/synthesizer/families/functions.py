@@ -242,7 +242,7 @@ class FunctionVocabFamily(SynthFamily):
                 variables,
                 int_seed(f"functions:{seed}:{kind}:{i}"),
                 n_variants=n_variants,
-                meta={"vocab": name},
+                meta={"vocab": name, "slice": "vocab"},
                 sample_kwargs=sopt,
                 equation_type=etype,
             )

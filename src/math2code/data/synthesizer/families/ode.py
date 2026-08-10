@@ -115,7 +115,7 @@ class ODEFamily(SynthFamily):
                 [_X],
                 int_seed(f"ode:{seed}:{i}"),
                 n_variants=n_variants,
-                meta={"ic_y0": str(y0), "ic_y1": str(y1)},
+                meta={"ic_y0": str(y0), "ic_y1": str(y1), "slice": "ode"},
                 sample_kwargs={"low": -3.0, "high": 3.0, "pole_margin": 0.3},
             )
             out.extend(rows)

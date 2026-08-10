@@ -45,6 +45,14 @@ synth-functions:
 synth-ode:
 	python scripts/generate_verified_data.py --families ode --count 20 --seed 42 --out data/synthetic/ode_v1.jsonl
 
+synth-multivariate:
+	python scripts/generate_verified_data.py --families multivariate --count 40 --seed 42 --out data/synthetic/multivariate_v1.jsonl
+
+# Training mixture: 65% frozen competition + 35% verified synthetic (caps),
+# latex-deduped, contamination-checked vs frozen test/val. Deterministic (seed 42).
+mixture:
+	python scripts/build_mixture.py --size 22002 --out data/synthetic/train_mixture_v1.jsonl
+
 smoke-pool:
 	python scripts/smoke_pool.py
 

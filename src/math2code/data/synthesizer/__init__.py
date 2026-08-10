@@ -10,6 +10,7 @@ from math2code.data.synthesizer.core import SynthFamily
 from math2code.data.synthesizer.families.derivative import DerivativeFamily
 from math2code.data.synthesizer.families.functions import FunctionVocabFamily
 from math2code.data.synthesizer.families.integral import IntegralFamily
+from math2code.data.synthesizer.families.multivariate import MultivariateFamily
 from math2code.data.synthesizer.families.ode import ODEFamily
 from math2code.data.synthesizer.printer import VariantPrinter, render_variants
 from math2code.data.synthesizer.sampler import sample_inputs
@@ -19,6 +20,7 @@ __all__ = [
     "DerivativeFamily",
     "IntegralFamily",
     "FunctionVocabFamily",
+    "MultivariateFamily",
     "ODEFamily",
     "VariantPrinter",
     "render_variants",
@@ -29,5 +31,6 @@ FAMILIES = {
     "derivative": DerivativeFamily,
     "integration": IntegralFamily,
     "functions": FunctionVocabFamily,
+    "multivariate": MultivariateFamily,
     "ode": ODEFamily,
 }

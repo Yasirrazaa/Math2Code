@@ -1,15 +1,15 @@
 {
   "seed": 42,
   "families": [
-    "ode"
+    "multivariate"
   ],
   "opts": {
     "n_variants": 2
   },
-  "generated": 40,
+  "generated": 80,
   "contamination_dropped": 0,
-  "accepted": 40,
+  "accepted": 80,
   "rejected": 0,
   "reject_reasons": {},
-  "sha256": "669964c7976f3de31451c26f0bae9d45c7fc1670183e6abc9503368a81a34496"
+  "sha256": "1b0de18eabfc70dfafb722734dc259965831ca178c69c9d5326495a13446689e"
 }
