@@ -1,0 +1,17 @@
+{
+  "seed": 42,
+  "families": [
+    "derivative",
+    "integration"
+  ],
+  "opts": {
+    "kind": "indefinite",
+    "n_variants": 2
+  },
+  "generated": 160,
+  "contamination_dropped": 0,
+  "accepted": 160,
+  "rejected": 0,
+  "reject_reasons": {},
+  "sha256": "aaa1c1063aaf7110a26e12902c8aa1c50af8c0f3122b22bc118fb3a4f4ac4e51"
+}

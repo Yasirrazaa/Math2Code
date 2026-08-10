@@ -54,3 +54,6 @@ wandb/
 
 # --- Docker ---
 *.log
+
+# synthetic-data runtime artifacts (regenerate with make synth)
+data/synthetic/*.rejected.json

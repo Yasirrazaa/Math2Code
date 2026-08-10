@@ -1,4 +1,4 @@
-.PHONY: setup setup-train lint format typecheck test test-quick check splits eval-gold docker-up clean
+.PHONY: setup setup-train lint format typecheck test test-quick check splits eval-gold synth docker-up clean
 
 setup:
 	uv pip install --system -e ".[dev]"
@@ -27,6 +27,17 @@ check: lint typecheck test
 
 eval-gold:
 	python -m math2code.evaluation.eval gold --split data/split/test.json --n 100
+
+# Code-first synthetic data: generate + oracle-verify (accept/reject)
+# default: 160 derivative/integration rows -> data/synthetic/calculus_indefinite_v1.jsonl
+synth:
+	python scripts/generate_verified_data.py --families derivative,integration --kind indefinite --count 40 --seed 42 --out data/synthetic/calculus_indefinite_v1.jsonl
+
+synth-definite:
+	python scripts/generate_verified_data.py --families integration --kind definite --count 40 --seed 42 --out data/synthetic/calculus_definite_v1.jsonl
+
+synth-variable:
+	python scripts/generate_verified_data.py --families integration --kind variable --count 40 --seed 42 --out data/synthetic/calculus_variable_v1.jsonl
 
 smoke-pool:
 	python scripts/smoke_pool.py

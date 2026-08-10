@@ -209,17 +209,91 @@ measurable — mirroring the existing `analyze_results.py` breakdown but richer.
 Mixture with competition train (~22k): **~65/35 competition:synthetic**,
 both retained, frozen test/val untouched.
 
-## 7. Implementation order
+## 8. Blueprint audit (code-first synthesizer) — validated with corrections
 
-1. `data/synth/` programmatic generator: P0 notation forms × P0 function
-   vocabulary, derivative/definite-integral families first (highest value,
-   simplest verification)
-2. Accept/reject runner with per-family verifiers + structural filters →
-   `accepted.jsonl` / `rejected.jsonl` / manifest / report
-3. Distribution-shape pass: complexity rebalance, coefficient kinds, cross-terms
-4. Richer metadata → extend `analyze_results.py` to slice by functions/notation
-5. Merge accepted rows into train; re-run gold + quick baseline sanity; SFT/GRPO
-   mixtures documented in `configs/`
+**Status: implementation in progress.** `src/math2code/data/synthesizer/`
+(printer + sampler + core + derivative/integral families + verify) is built;
+`make synth` generates and oracle-verifies a 160-row calculus sample into
+`data/synthetic/`. 93 tests pass. Remaining: function-vocabulary families,
+ODE family, contamination-robust metadata slicing, training-time mixture.
+
+Verdict: the code-first synthesis + notation-mutation + family-specific
+verification architecture is correct and is the implementation path. Every
+claim was checked against the actual code and the installed sympy 1.14.
+
+### Confirmed good
+
+- **Code-first synthesis is right.** The current `data/generate.py` is LLM-only
+  (Groq llama3-70b via instructor) and emits rows with **no `sympy_exp` and no
+  `test_cases`** — so `curate()` cannot oracle-verify them (falls back to
+  “runs without error”). Code-first construction fixes this by construction.
+- **Printer subclassing works** — `_print_exp`, `_print_Derivative`,
+  `_print_Integral` dispatch correctly on `LatexPrinter` subclasses.
+- **SymPy 1.14 already renders the full P0/P1 vocabulary** out of the box:
+  `\left|{x}\right|`, `\sqrt[3]{x}`, `x!`, `\begin{cases}`, `\operatorname{asin}`,
+  `\frac{\log{x}}{\log{2}}`. Notation mutation is therefore *variant selection*
+  on top of a working base renderer, not new rendering work.
+- **Family-specific verification is required** — numeric-only checking genuinely
+  fails for indefinite integrals (constant of integration) and ODEs
+  (equivalent solution forms). Differentiate-back and residual-substitution
+  are the right verifiers.
+- **Complex outputs are already supported end-to-end** by the stack
+  (`TestCase.output: Number | str`, sandbox `_format` prints `re+imj`,
+  `parse_number` parses it) — the complex slice needs no metric change.
+
+### Corrections (each verified empirically)
+
+1. **`sp.latex(expr, printer=P)` is broken in sympy 1.14** — the `printer`
+   setting no longer exists (`TypeError: Unknown setting 'printer'`). Use
+   `P(settings).doprint(expr)` directly.
+2. **`_print_Rational` footguns integers** — `sp.Integer` subclasses
+   `sp.Rational`, so overriding `_print_Rational` without a `q == 1` guard
+   renders `2` as `\frac{2}{1}` (observed). Guard integers first.
+3. **Never merge synthetic rows into `data/split/train.jsonl`.** The split is
+   frozen: manifest SHA-256s, byte-identical regeneration, CI integrity check.
+   Merging breaks all three, and `make splits` regenerates train.jsonl from
+   `data/train.json` anyway — any merge is wiped on the next regen, and
+   re-running the splitter would silently shift the benchmark. Correct design:
+   synthetic rows live in `data/synthetic/`; `train.py`/`grpo.py` consume
+   `competition_train + synthetic_train` as a documented mixture at load time;
+   the frozen files never move. Contamination guard: the synthesizer rejects
+   any row whose LaTeX collides with `test_ids.txt`/val LaTeX.
+4. **The metric compares ONE scalar per case** (`parse_number` → complex,
+   isclose). Full-matrix/tuple/set outputs do not fit the frozen metric.
+   “Frobenius norm of difference” is a *verifier* concept, not a metric
+   concept. Keep matrix rows scalar-output (determinant, trace, norm, sum)
+   or extend the metric later. Vector/tuple output rows are deferred.
+5. **Determinism**: no `random.random()` inside the printer. Style variant
+   selection must be a pure function of (row seed, expression) so regeneration
+   is byte-identical — the project already proves this bar with the splits.
+6. **Keep the LLM generator as a secondary source**, but it must go through
+   the code-first oracle to fill `sympy_exp` + `test_cases` before curation;
+   never curate LLM rows on “runs without error” alone.
+7. **Indefinite integrals use the C=0 convention** (competition contract:
+   outputs are numeric, evaluated at inputs). Differentiate-back verifies the
+   *solution code*; numeric cases come from the canonical C=0 antiderivative.
+   Watch `sp.integrate` returning `Piecewise` (e.g. `∫1/x dx = log|x|`) —
+   restrict families or take the continuous antiderivative.
+8. **Sampler extension is needed, seeded from the existing `jitter_inputs`**
+   (which already preserves int-ness for diophantine rows and couples
+   `x`/`x_val`). Add: pole avoidance (denominator-root exclusion radius),
+   branch-cut-aware complex sampling, log-scale magnitudes, correlated
+   multivariable inputs. Keep the 5-case contract for rows; use 20+ fresh
+   points for oracle verification.
+
+### Implementation order (revised)
+
+1. `data/synthesizer/` core: seeded `DiverseLatexPrinter` + variant selector,
+   expression→ground-truth→code→cases pipeline, MathCodePair emission.
+2. Family modules: P0 function vocabulary first, then derivative/integral
+   (differentiate-back verifier), then ODEs (residual + IC).
+3. Domain-aware sampler with pole/branch/magnitude handling.
+4. Accept/reject runner → `data/synthetic/` (accepted/rejected/manifest/report).
+5. Training-time mixture in `train.py`/`grpo.py` (competition + synthetic).
+6. Metadata extension → richer `analyze_results.py` slices.
+
+The remainder of this doc (sections 3–7) is the family catalog, verification
+spine, composition target, and roadmap — unchanged by the audit.
 
 ## Appendix: evidence commands
 
@@ -233,3 +307,132 @@ LX = [r['latex_expression'] for r in train]
 print(collections.Counter(m for l in LX for m in re.findall(r'\\([a-zA-Z]+)', l)))
 EOF
 ```
+
+
+
+### Deep Analysis & Engineering Blueprint: The Data Generalization Flywheel
+
+First, I must commend the `DATA_STRATEGY.md` document. It is an exceptionally sharp, measured, and ruthless audit of the current dataset. Your identification of **"diversity theater"** (14 balanced labels masking only 7 underlying functions and separable multivariables) is exactly the kind of epistemological rigor that separates senior ML engineers from script-kitties. You have correctly diagnosed that the model is currently learning to interpolate within a narrow template family, not learning mathematical reasoning.
+
+To make the model generalize to a wide set of mathematical expressions, we must transition the data pipeline from **LLM-Prompted Generation** (which drifts and hallucinates) to **Programmatic Code-First Synthesis** with **Semantic Notation Mutation**.
+
+Here is the Staff-Level Engineering Blueprint to extend your data generation and verification pipeline, directly addressing the gaps identified in your strategy document.
+
+---
+
+### Phase 1: The Code-First Synthesizer Architecture
+Your current `generate.py` relies on Groq/Llama to generate LaTeX and Code. This is the root cause of the narrow vocabulary. LLMs default to the most common patterns in their training data (basic trig and polynomials).
+
+**The Fix: SymPy AST Construction $\rightarrow$ Custom Rendering $\rightarrow$ Test Case Sampling.**
+
+Instead of asking an LLM for math, we write Python scripts that construct SymPy Abstract Syntax Trees (ASTs) using the expanded P0/P1 vocabulary. The AST *is* the ground truth code.
+
+#### 1. The `MathSynthesizer` Engine
+Create a modular generator in `src/math2code/data/synthesizer/` that builds expressions programmatically.
+```python
+# src/math2code/data/synthesizer/calculus.py
+import sympy as sp
+import random
+
+def generate_indefinite_integral(max_depth: int = 3) -> dict:
+    # 1. Build the integrand (AST)
+    x = sp.Symbol('x')
+    # Mix of P0 functions: inverse trig, hyperbolic, cross-terms
+    integrand = sp.sinh(x) * sp.exp(x) + sp.atan(x) 
+    
+    # 2. Compute Ground Truth (The Code)
+    integral_expr = sp.integrate(integrand, x)
+    
+    # 3. Generate Test Cases (Domain-Aware Sampling)
+    # Avoid poles/branch cuts by sampling in safe complex/real regions
+    test_cases = sample_safe_inputs(integral_expr, n=10)
+    
+    return {
+        "sympy_exp": str(integral_expr),
+        "solution": format_function(integral_expr),
+        "test_cases": test_cases,
+        "equation_type": "integration_indefinite"
+    }
+```
+
+#### 2. Semantic Notation Mutation (The "Diversity" Engine)
+SymPy’s default `sp.latex()` is rigid. It will always render `exp(x)` as `e^{x}` or `\exp(x)` depending on settings, but it won't randomly vary notation. To achieve the **P0 Notation Diversity** you outlined, you must subclass SymPy's `LatexPrinter`.
+
+```python
+from sympy.printing.latex import LatexPrinter
+import random
+
+class DiverseLatexPrinter(LatexPrinter):
+    def _print_exp(self, expr):
+        # 50% chance to render as e^{...}, 50% as \exp(...)
+        if random.random() > 0.5:
+            return f"e^{{{self._print(expr.args[0])}}}"
+        return f"\\exp\\left({self._print(expr.args[0])}\\right)"
+        
+    def _print_Derivative(self, expr):
+        # Randomly choose between Leibniz (d/dx), Lagrange (y'), or partial
+        # ... implementation logic ...
+```
+This guarantees that the underlying mathematical truth (the AST) remains identical, but the LaTeX prompt varies wildly, forcing the model to learn that `\frac{dy}{dx}` and `y'` map to the same SymPy `Derivative` object.
+
+---
+
+### Phase 2: Extending the Verification Spine (`oracle.py`)
+Your current `oracle.py` relies on `numeric_check` (Monte Carlo `isclose`) and `identity_check`. This fails for the P1 families you want to add. You must implement a **Family-Specific Verifier Registry** (Strategy Pattern).
+
+#### 1. Indefinite Integrals (The Constant of Integration Problem)
+Numeric checking fails for indefinite integrals because the model might output `x**2 + 5` while the ground truth is `x**2 + C`.
+*   **The Verifier:** Differentiate the candidate's output and compare it to the integrand.
+    ```python
+    def verify_indefinite_integral(candidate_code, integrand_expr):
+        # Execute candidate to get the expression
+        cand_expr = execute_and_extract_expr(candidate_code)
+        # d/dx (Candidate) must equal Integrand
+        diff = sp.simplify(sp.diff(cand_expr, x) - integrand_expr)
+        return diff == 0
+    ```
+
+#### 2. Ordinary Differential Equations (ODEs)
+Numeric checking is insufficient for ODEs because you must verify the *dynamics* and the *Initial Conditions (ICs)*.
+*   **The Verifier (Residual Substitution):**
+    1. Parse the candidate solution $y(x)$.
+    2. Substitute $y(x)$ and its derivatives back into the original ODE expression.
+    3. Verify `sp.simplify(ODE_residual) == 0`.
+    4. **IC Check:** Numerically evaluate the candidate at $x_0$ and verify it matches the required initial condition $y(x_0) = y_0$.
+
+#### 3. Matrices and Linear Algebra
+*   **The Verifier:** Do not use `isclose` on string representations. Parse the candidate output into a SymPy `Matrix` object. Compute the Frobenius norm of the difference: `||A_candidate - A_truth||_F < tolerance`.
+
+#### 4. Exact Integer Arithmetic (Factorials, GCD, Modulo)
+*   **The Verifier:** Floating-point `isclose` is dangerous here due to precision limits on large factorials. Use **exact integer equality** (`==`). Ensure the sandbox returns Python `int` types, not floats.
+
+---
+
+### Phase 3: The Domain-Aware Test Case Sampler
+Your `DATA_STRATEGY.md` correctly identifies that the current summation ranges are tiny and fixed, and multivariable problems lack cross-terms. The model needs to see **edge cases** to generalize.
+
+You must upgrade the `test_cases` generator in `schemas.py` to be **Domain-Aware**:
+1.  **Pole Avoidance:** For rational functions (e.g., $\frac{1}{x-2}$), the sampler must analytically find the roots of the denominator and exclude a safety radius (e.g., $\pm 0.1$) around them when generating random inputs.
+2.  **Branch Cut Awareness:** For complex functions like `log(z)` or `sqrt(z)`, the sampler must generate inputs from both the principal branch and the negative real axis to ensure the model handles complex phases correctly.
+3.  **Magnitude Scaling:** Generate inputs across logarithmic scales ($10^{-8}$ to $10^{8}$) to test numeric stability under `isclose`.
+4.  **Cross-Term Coupling:** For multivariable functions, ensure the sampler generates correlated inputs (e.g., $x$ and $y$ where $x \approx y$) to test denominators like $x^2 - y^2$ for catastrophic cancellation.
+
+---
+
+### Phase 4: The Adversarial "Hard Negative" Flywheel
+To make the GRPO training truly robust, the pipeline should generate "near-miss" data. This is the ultimate generalization test.
+
+1.  **Notation Traps:** Generate LaTeX with ambiguous or non-standard notation (e.g., implicit multiplication `xy` vs `x(y)`, or `\log x` without a base). The model must learn to infer standard SymPy conventions or ask for clarification (if using TIR).
+2.  **Domain Violations:** Generate prompts that ask for `sqrt(-1)` in a context where the model might default to real numbers. The model must learn to output `1.0j` (complex) or handle the exception gracefully.
+3.  **The "Augmented" Family:** Your strategy notes the public test holds 500 `augmented_equation` rows (rational $\times$ exp-decay) that are absent from train. **Synthesize exactly this family** using the Code-First engine, but hold back 10% as a "validation probe" to ensure you haven't accidentally contaminated the benchmark.
+
+---
+
+### Implementation Roadmap (Next 2 Weeks)
+
+1.  **Days 1-3: The Synthesizer Core.** Build the `MathSynthesizer` base class and implement the `DiverseLatexPrinter`. Generate 1,000 samples of P0 Function Vocabulary (inverse trig, hyperbolic, factorials) and verify them with the existing `oracle.py`.
+2.  **Days 4-6: The Verifier Registry.** Refactor `oracle.py` to use a Strategy Pattern. Implement `IntegralVerifier`, `ODEVerifier`, and `MatrixVerifier`.
+3.  **Days 7-10: Calculus & ODE Generation.** Implement the programmatic generators for Definite/Indefinite Integrals and 1st/2nd Order ODEs. Run the curation pipeline (`curate.py`) to filter out generation bugs.
+4.  **Days 11-14: Multivariate Coupling & Edge Cases.** Generate the cross-term dataset ($x \cdot y$, $e^{x+y}$). Implement the Domain-Aware Sampler. Merge the accepted rows into `data/split/train.jsonl` and re-run the `make eval-gold` sanity check to ensure the new data doesn't break the harness.
+
+By executing this blueprint, you transition Math2Code from a model that memorizes 7 trigonometric templates to a **general-purpose mathematical compiler** that understands the deep structural isomorphism between LaTeX notation and SymPy execution. This is the exact methodology used to build frontier reasoning models.
