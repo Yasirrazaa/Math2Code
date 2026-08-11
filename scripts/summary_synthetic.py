@@ -20,17 +20,60 @@ from collections import Counter
 from pathlib import Path
 
 SYNTH_DIR = Path("data/synthetic")
-FAMILY_FILES = [
+_FAMILY_FILES = [
     "calculus_indefinite_v1.jsonl",
     "calculus_definite_v1.jsonl",
     "calculus_variable_v1.jsonl",
+    "derivative_v1.jsonl",
     "functions_v1.jsonl",
     "ode_v1.jsonl",
+    "ode_c1_v1.jsonl",
+    "summation_v1.jsonl",
+    "limits_v1.jsonl",
+    "series_v1.jsonl",
+    "elementary_v1.jsonl",
+    "complex_v1.jsonl",
+    "polynomials_v1.jsonl",
+    "matrix_v1.jsonl",
     "multivariate_v1.jsonl",
     "sequences_v1.jsonl",
     "geometry_v1.jsonl",
+    "geometry_ext_v1.jsonl",
+    "ntheory_ext_v1.jsonl",
+    "combinatorics_v1.jsonl",
     "edge_v1.jsonl",
     "numtheory_v1.jsonl",
+    "special_v1.jsonl",
+    "stats_v1.jsonl",
+    "sets_v1.jsonl",
+    "solving_v1.jsonl",
+]
+
+# measured frozen-test notation surface (docs/DATA_STRATEGY.md §audit): the
+# alignment score = fraction of test patterns also present in the pool.
+_NOTATION_PATTERNS = [
+    ("repr-integral", r"\\mathtt\{\\text\{Integral\("),
+    ("repr-derivative", r"\\mathtt\{\\text\{Derivative\("),
+    ("d/dx", r"\\frac\{d\}\{d"),
+    ("sum", r"\\sum_"),
+    ("prod", r"\\prod_"),
+    ("lim", r"\\lim_"),
+    ("int", r"\\int"),
+    ("partial", r"\\partial"),
+    ("det", r"\\det"),
+    ("tr", r"\\operatorname\{tr\}"),
+    ("coeff", r"\\operatorname\{coeff\}"),
+    ("xkbracket", r"\\left\[x\^"),
+    ("binom", r"\\binom"),
+    ("gcd", r"gcd"),
+    ("varphi", r"\\varphi"),
+    ("sigma", r"\\sigma"),
+    ("log", r"\\log"),
+    ("exp-notation", r"e\^\{?\\-?" ),
+    ("mathbbE", r"\\mathbb\{E\}"),
+    ("nabla", r"\\nabla"),
+    ("matrix", r"begin\{matrix\}"),
+    ("pmatrix", r"begin\{pmatrix\}"),
 ]
 
 _FUNCS = (
@@ -95,7 +138,7 @@ def main() -> int:
     train = load(Path(args.train))
     mixture = load(Path(args.mixture))
     pool: list[dict] = []
-    for name in FAMILY_FILES:
+    for name in _FAMILY_FILES:
         pool += load(SYNTH_DIR / name)
 
     print(f"frozen train      : {len(train):6d} rows")
@@ -130,6 +173,33 @@ def main() -> int:
         for r in pool:
             vocab.update(_functions_in_latex(r.get("latex_expression", "")))
         print(f"\nfunction vocabulary (synthetic pool): {dict(sorted(vocab.items()))}")
+
+    # notation-alignment audit vs frozen test (measurement-first surface check)
+    test_path = Path("data/split/test.json")
+    if test_path.exists():
+        test_rows: list[dict] = json.loads(test_path.read_text())
+    if test_rows:
+        import re
+
+        def _count(rows: list[dict]) -> Counter[str]:
+            c: Counter[str] = Counter()
+            for r in rows:
+                tex = r.get("latex_expression", "")
+                for name, pat in _NOTATION_PATTERNS:
+                    if re.search(pat, tex):
+                        c[name] += 1
+            return c
+
+        test_nt = _count(test_rows)
+        pool_nt = _count(pool)
+        present = {k for k, v in test_nt.items() if v > 0}
+        aligned = {k for k in present if pool_nt.get(k, 0) > 0}
+        print(
+            f"\nnotation alignment vs frozen test: {len(aligned)}/{len(present)} "
+            f"patterns covered ({100 * len(aligned) / max(len(present), 1):.0f}%)"
+        )
+        print(f"  test patterns : {dict(sorted(test_nt.items()))}")
+        print(f"  pool patterns : {dict(sorted({k: v for k, v in pool_nt.items() if v > 0}.items()))}")
     return 0
 
 

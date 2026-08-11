@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "families": [
+    "sets_cardinality"
+  ],
+  "opts": {
+    "n_variants": 2
+  },
+  "generated": 200,
+  "contamination_dropped": 0,
+  "accepted": 200,
+  "rejected": 0,
+  "reject_reasons": {},
+  "sha256": "337ff0476f500c13bbc239072c2c8dbfa20a692fcdb829e949bcc0212c226866"
+}

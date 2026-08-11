@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "families": [
+    "solving_scalarized"
+  ],
+  "opts": {
+    "n_variants": 2
+  },
+  "generated": 400,
+  "contamination_dropped": 0,
+  "accepted": 400,
+  "rejected": 0,
+  "reject_reasons": {},
+  "sha256": "2405a78acc60aed8d53ffeffca52e2a6c0a1fa50f98603247c79b84036b31c7a"
+}

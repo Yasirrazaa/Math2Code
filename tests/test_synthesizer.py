@@ -171,7 +171,13 @@ def test_variable_limit_integral_rows() -> None:
     assert rows
     for r in rows:
         assert r.metadata["kind"] == "variable_limit"
-        assert "\\int" in r.latex_expression or "\\operatorname" in r.latex_expression
+        # competition surface — may render as \int_0^x, \operatorname{Integral}, or
+        # the \mathtt{\text{Integral(...)}} repr-wrapped form (one of these)
+        assert (
+            "\\int" in r.latex_expression
+            or "\\operatorname" in r.latex_expression
+            or "Integral" in r.latex_expression  # repr-wrapped surface
+        )
 
 
 # --------------------------------------------------------------------------
@@ -411,3 +417,26 @@ def test_mixture_keeps_parameterized_latex_dupes() -> None:
     latexes = {r["latex_expression"] for r in numtheory}
     outputs = {tuple(tc["output"] for tc in r["test_cases"]) for r in numtheory}
     assert len(latexes) < len(outputs)  # same latex, different problems
+
+
+def test_all_families_metadata_is_json_serializable() -> None:
+    """Regression guard: every registered family's emitted rows must round-trip
+    through json.dumps (the generation pipeline writes rows as JSONL). A
+    non-serializable metadata field (e.g. sympy Integer leaking through
+    sp.degree / sp.roots) silently breaks the pipeline.
+    """
+    from math2code.data.synthesizer import FAMILIES
+
+    n_seen = 0
+    for name, family_cls in FAMILIES.items():
+        rows = family_cls().generate(seed=42, prefix=name, count=4)
+        for r in rows:
+            n_seen += 1
+            try:
+                json.dumps(r.metadata)
+                json.dumps([tc.output for tc in r.test_cases])
+                # also exercise the full row model_dump for completeness
+                json.dumps(r.model_dump())
+            except TypeError as exc:
+                raise AssertionError(f"{name}/{r.task_id}: {exc}") from exc
+    assert n_seen > 50  # we registered enough families that this is a real sweep

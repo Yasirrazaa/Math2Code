@@ -163,6 +163,16 @@ surface and math is deep:
 - **Anything derived from the frozen test/val expressions** — the generator must
   never be tuned against the benchmark.
 
+## 4a. Epistemological boundary — what this dataset can and cannot prove
+
+This is a **synthetic, single-scalar-output** training set over SymPy's mathematical surface. It is honest about three things:
+
+1. **Universality is "evaluate any scalar mathematical query over SymPy's surface, deterministically verifiable"** — NOT "answer every math question". The frozen harness accepts exactly one scalar per row. Anything that would require a set, matrix, interval, or proof is out of scope by contract.
+2. **Ground truth is sandbox-executed, not judged by an LLM.** Every row's truth is either (a) a closed-form SymPy expression that roundtrips through `sympify`, (b) a `truth_code` snippet executed in a sandboxed `python` process, or (c) `.evalf()` on a known unevaluated expression. There is no fourth class. Integer truths never accept float drift; complex truths parse via `parse_number` which produces clean `'a-bj'` strings (the `format_output` path uses `{c.imag:+}j` to avoid the legacy `'a+-bj'` round-trip edge case).
+3. **The synthetic pool can only teach what SymPy can express.** Everything in this dataset is, by construction, computable by a small Python program with `sympy` (and possibly `mpmath` for special functions via `.evalf()`). Problems requiring human reasoning, multi-step proof construction, or mathematical creativity are not representable — and we will not pretend otherwise. The model learns **mapping LaTeX → executable SymPy/Python**, not mathematics from first principles. That is a real, useful, narrower thing.
+
+The portfolio value of this dataset is therefore NOT "math AI" — it is **measured, reproducible LaTeX→code over a verifiable subset of SymPy**, with deterministic acceptance gates and frozen contamination checks. Every metric claimed in the repo can be regenerated from a single seed and the SHA-256 manifests in `data/split/`.
+
 ## 5. Verification spine (accept/reject)
 
 Every generated row passes the same spine; a row is **accepted only when the

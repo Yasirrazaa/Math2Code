@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "families": [
+    "series_coeff"
+  ],
+  "opts": {
+    "n_variants": 2
+  },
+  "generated": 400,
+  "contamination_dropped": 0,
+  "accepted": 400,
+  "rejected": 0,
+  "reject_reasons": {},
+  "sha256": "123348fd94869d38b69104519641f74a9abe33089a6db19bc02a1607b9b96548"
+}

@@ -102,6 +102,17 @@ _SETTINGS = [
 ]
 
 
+def repr_wrapped_tex(expr: sp.Expr) -> str:
+    """Competition repr-wrapped surface: ``\\mathtt{{\\text{{Integral(f, x)}}}}``.
+
+    The frozen test renders calculus questions as a wrapped python repr of the
+    sympy AST string (``\\mathtt{{\\text{{Integral(7*x + ...)}}}}``)
+    rather than ``\\int``/Leibniz notation. `sp.sstr` gives exactly that repr
+    text; the wrapper matches the competition surface token-for-token.
+    """
+    return rf"\mathtt{{\text{{{sp.sstr(expr)}}}}}"
+
+
 def render_variants(expr: sp.Expr, seed: int, n_variants: int = 2) -> list[str]:
     """Deterministic notation variants of `expr`.
 

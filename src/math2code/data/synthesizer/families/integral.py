@@ -73,6 +73,7 @@ class IntegralFamily(SynthFamily):
             seed,
             n_variants=n_variants,
             meta=meta,
+            repr_surface=True,  # competition uses \mathtt{\text{Integral(...)}} form
         )
 
     def generate(

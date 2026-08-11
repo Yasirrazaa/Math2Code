@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "families": [
+    "combinatorics"
+  ],
+  "opts": {
+    "n_variants": 2
+  },
+  "generated": 500,
+  "contamination_dropped": 0,
+  "accepted": 500,
+  "rejected": 0,
+  "reject_reasons": {},
+  "sha256": "0996cbf7d0acdcf0965f76f0224fde85b8af59950fa66d50a7ebb9aba3946c03"
+}

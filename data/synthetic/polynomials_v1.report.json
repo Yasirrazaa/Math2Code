@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "families": [
+    "polynomial_invariants"
+  ],
+  "opts": {
+    "n_variants": 2
+  },
+  "generated": 300,
+  "contamination_dropped": 0,
+  "accepted": 300,
+  "rejected": 0,
+  "reject_reasons": {},
+  "sha256": "3c441e15016f0badbdb0b7db679a1bfcdb33383712d722bf6e34154fde2acc1a"
+}

@@ -60,3 +60,6 @@ data/synthetic/*.rejected.json
 
 # regenerable training mixture (~20 MB; `make mixture` rebuilds it byte-identically)
 data/synthetic/train_mixture*.jsonl
+
+# Local agent scratch (subagent run artifacts)
+.pi-subagents/

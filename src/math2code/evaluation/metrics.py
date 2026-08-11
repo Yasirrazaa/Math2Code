@@ -175,8 +175,15 @@ def bootstrap_ci(
 
 
 def format_output(value: object) -> str:
-    """Canonical string form for a computed output (matches submission format)."""
+    """Canonical string form for a computed output (matches submission format).
+
+    `{c.imag:+}` keeps the sign attached: '10.46+9.42j' and '10.46-9.42j'.
+    The previous f"{c.real}+{c.imag}j" produced the unparseable
+    '10.46+-9.42j' for negative imaginary parts (parse_number cannot round-trip
+    it: ast.literal_eval rejects the UnaryOp node and the ' +-' fallback
+    requires a space that was never emitted).
+    """
     c = parse_number(value)
     if c.imag != 0:
-        return f"{c.real}+{c.imag}j"
+        return f"{c.real}{c.imag:+}j"
     return str(c.real)

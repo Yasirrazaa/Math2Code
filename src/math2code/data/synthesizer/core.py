@@ -101,6 +101,8 @@ class SynthFamily(ABC):
         sample_kwargs: dict[str, Any] | None = None,
         equation_type: str | None = None,
         custom_code: tuple[str, str] | None = None,
+        latex_override: list[str] | None = None,
+        repr_surface: bool = False,
     ) -> list[MathCodePair]:
         """One math object -> one row per LaTeX notation variant.
 
@@ -112,7 +114,18 @@ class SynthFamily(ABC):
         """
         if custom_code is None and not roundtrips(result_expr):
             return []  # gate 1: solution code would not construct the expr
-        variants = render_variants(problem_expr, seed, n_variants=n_variants)
+        if latex_override is not None:
+            variants = list(dict.fromkeys(latex_override))  # dedupe, keep order
+        elif repr_surface:
+            # repr-wrapped python surface (matches competition `\mathtt{\text{...}}`
+            # Integral/Derivative rows): the AST-string wrapped, then variants
+            from math2code.data.synthesizer.printer import repr_wrapped_tex
+
+            variants = [repr_wrapped_tex(problem_expr)] + render_variants(
+                problem_expr, seed, n_variants=max(0, n_variants - 1)
+            )
+        else:
+            variants = render_variants(problem_expr, seed, n_variants=n_variants)
         sopt: dict[str, Any] = {
             "ints_only": False,
             "low": -5.0,

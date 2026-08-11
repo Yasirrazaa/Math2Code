@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "families": [
+    "matrix_scalars"
+  ],
+  "opts": {
+    "n_variants": 2
+  },
+  "generated": 250,
+  "contamination_dropped": 0,
+  "accepted": 250,
+  "rejected": 0,
+  "reject_reasons": {},
+  "sha256": "cc20a51bf11b0dde6b275ccf8b9f90e70959d03de75552e63e81f0e9abf1a608"
+}

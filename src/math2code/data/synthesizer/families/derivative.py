@@ -90,6 +90,7 @@ class DerivativeFamily(SynthFamily):
                 int_seed(f"derivative:{seed}:{i}"),
                 n_variants=int(opts.get("n_variants", 2)),
                 meta={"slice": "calculus"},
+                repr_surface=True,  # competition uses \mathtt{\text{Derivative(...)}} form
             )
             out.extend(rows)
         return out[: count * 2]

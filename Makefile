@@ -39,6 +39,9 @@ synth-definite:
 synth-variable:
 	python scripts/generate_verified_data.py --families integration --kind variable --count 300 --seed 42 --out data/synthetic/calculus_variable_v1.jsonl
 
+synth-derivative:
+	python scripts/generate_verified_data.py --families derivative --count 400 --seed 42 --out data/synthetic/derivative_v1.jsonl
+
 synth-functions:
 	python scripts/generate_verified_data.py --families functions --count 800 --seed 42 --out data/synthetic/functions_v1.jsonl
 
@@ -59,6 +62,75 @@ synth-edge:
 
 synth-numtheory:
 	python scripts/generate_verified_data.py --families numtheory --count 400 --seed 42 --out data/synthetic/numtheory_v1.jsonl
+
+synth-diff-c1:
+	python scripts/generate_verified_data.py --families differential_c1 --count 350 --seed 42 --out data/synthetic/ode_c1_v1.jsonl
+
+synth-summation:
+	python scripts/generate_verified_data.py --families summation --count 300 --seed 42 --out data/synthetic/summation_v1.jsonl
+
+synth-limits:
+	python scripts/generate_verified_data.py --families limits --count 200 --seed 42 --out data/synthetic/limits_v1.jsonl
+
+synth-series:
+	python scripts/generate_verified_data.py --families series_coeff --count 200 --seed 42 --out data/synthetic/series_v1.jsonl
+
+synth-elementary:
+	python scripts/generate_verified_data.py --families elementary_ext --count 600 --seed 42 --out data/synthetic/elementary_v1.jsonl
+
+synth-complex:
+	python scripts/generate_verified_data.py --families complex_eval --count 300 --seed 42 --out data/synthetic/complex_v1.jsonl
+
+synth-polynomials:
+	python scripts/generate_verified_data.py --families polynomial_invariants --count 300 --seed 42 --out data/synthetic/polynomials_v1.jsonl
+
+synth-matrix:
+	python scripts/generate_verified_data.py --families matrix_scalars --count 250 --seed 42 --out data/synthetic/matrix_v1.jsonl
+
+synth-ntheory-ext:
+	python scripts/generate_verified_data.py --families ntheory_ext --count 300 --seed 42 --out data/synthetic/ntheory_ext_v1.jsonl
+
+synth-combinatorics:
+	python scripts/generate_verified_data.py --families combinatorics --count 250 --seed 42 --out data/synthetic/combinatorics_v1.jsonl
+
+synth-geometry-ext:
+	python scripts/generate_verified_data.py --families geometry_ext --count 200 --seed 42 --out data/synthetic/geometry_ext_v1.jsonl
+
+# Gated portfolio slices: verified but EXCLUDED from the default RL mixture
+synth-special:
+	python scripts/generate_verified_data.py --families special_functions --count 200 --seed 42 --out data/synthetic/special_v1.jsonl
+
+synth-stats:
+	python scripts/generate_verified_data.py --families stats_moments --count 200 --seed 42 --out data/synthetic/stats_v1.jsonl
+
+synth-sets:
+	python scripts/generate_verified_data.py --families sets_cardinality --count 200 --seed 42 --out data/synthetic/sets_v1.jsonl
+
+synth-solving:
+	python scripts/generate_verified_data.py --families solving_scalarized --count 200 --seed 42 --out data/synthetic/solving_v1.jsonl
+
+synth-all:
+	python scripts/generate_verified_data.py --families derivative,integration --kind indefinite --count 400 --seed 42 --out data/synthetic/calculus_indefinite_v1.jsonl
+	python scripts/generate_verified_data.py --families integration --kind definite --count 300 --seed 42 --out data/synthetic/calculus_definite_v1.jsonl
+	python scripts/generate_verified_data.py --families integration --kind variable --count 300 --seed 42 --out data/synthetic/calculus_variable_v1.jsonl
+	python scripts/generate_verified_data.py --families derivative --count 400 --seed 42 --out data/synthetic/derivative_v1.jsonl
+	python scripts/generate_verified_data.py --families functions --count 800 --seed 42 --out data/synthetic/functions_v1.jsonl
+	python scripts/generate_verified_data.py --families ode --count 350 --seed 42 --out data/synthetic/ode_v1.jsonl
+	python scripts/generate_verified_data.py --families differential_c1 --count 350 --seed 42 --out data/synthetic/ode_c1_v1.jsonl
+	python scripts/generate_verified_data.py --families summation --count 300 --seed 42 --out data/synthetic/summation_v1.jsonl
+	python scripts/generate_verified_data.py --families limits --count 200 --seed 42 --out data/synthetic/limits_v1.jsonl
+	python scripts/generate_verified_data.py --families series_coeff --count 200 --seed 42 --out data/synthetic/series_v1.jsonl
+	python scripts/generate_verified_data.py --families elementary_ext --count 600 --seed 42 --out data/synthetic/elementary_v1.jsonl
+	python scripts/generate_verified_data.py --families complex_eval --count 300 --seed 42 --out data/synthetic/complex_v1.jsonl
+	python scripts/generate_verified_data.py --families polynomial_invariants --count 300 --seed 42 --out data/synthetic/polynomials_v1.jsonl
+	python scripts/generate_verified_data.py --families matrix_scalars --count 250 --seed 42 --out data/synthetic/matrix_v1.jsonl
+	python scripts/generate_verified_data.py --families ntheory_ext --count 300 --seed 42 --out data/synthetic/ntheory_ext_v1.jsonl
+	python scripts/generate_verified_data.py --families combinatorics --count 250 --seed 42 --out data/synthetic/combinatorics_v1.jsonl
+	python scripts/generate_verified_data.py --families geometry_ext --count 200 --seed 42 --out data/synthetic/geometry_ext_v1.jsonl
+	python scripts/generate_verified_data.py --families special_functions --count 200 --seed 42 --out data/synthetic/special_v1.jsonl
+	python scripts/generate_verified_data.py --families stats_moments --count 200 --seed 42 --out data/synthetic/stats_v1.jsonl
+	python scripts/generate_verified_data.py --families sets_cardinality --count 200 --seed 42 --out data/synthetic/sets_v1.jsonl
+	python scripts/generate_verified_data.py --families solving_scalarized --count 200 --seed 42 --out data/synthetic/solving_v1.jsonl
 
 # Training mixture: 65% frozen competition + 35% verified synthetic (caps),
 # latex-deduped, contamination-checked vs frozen test/val. Deterministic (seed 42).

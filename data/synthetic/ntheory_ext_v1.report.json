@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "families": [
+    "ntheory_ext"
+  ],
+  "opts": {
+    "n_variants": 2
+  },
+  "generated": 300,
+  "contamination_dropped": 0,
+  "accepted": 300,
+  "rejected": 0,
+  "reject_reasons": {},
+  "sha256": "aebf0e6a75084ce3f81f78774db2e89928954008232d4bfb3773d8827cb2c516"
+}

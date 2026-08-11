@@ -39,28 +39,65 @@ from math2code.schemas import MathCodePair, TestCase  # noqa: F401
 
 # strategy composition (shares of the *synthetic* portion)
 _SLICE_ORDER = [
-    ("calculus", 0.30),
-    ("vocab", 0.20),
-    ("multivariate", 0.15),
-    ("ode", 0.10),
+    ("calculus", 0.22),
+    ("vocab", 0.16),
+    ("multivariate", 0.12),
+    ("ode", 0.08),
+    ("summation", 0.04),
+    ("limits", 0.04),
+    ("series", 0.02),
+    ("polynomial", 0.05),
+    ("matrix", 0.03),
+    ("combinatorics", 0.02),
     ("sequences", 0.04),
     ("geometry", 0.03),
     ("numtheory", 0.03),
-    ("rational", 0.10),
-    ("edge", 0.05),
+    ("rational", 0.08),
+    ("edge", 0.04),
 ]
+# When --include-gated-slices is set, reduce the highest-volume non-essential
+# slice (calculus) to make room for the 4 gated portfolio slices, which are
+# verified but deliberately excluded from the default RL mixture because they
+# explore non-eval mathematical domains and risk output-contract drift.
+_GATED_SLICE_ORDER = [
+    ("special", 0.04),
+    ("stats", 0.04),
+    ("sets", 0.04),
+    ("algebraic", 0.04),
+]
+# net delta when including gated: +0.16 in gated slices, -0.16 from calculus
+# (keeps the sum to 1.00)
 
 _DEFAULT_SYNTH = [
     "data/synthetic/calculus_indefinite_v1.jsonl",
     "data/synthetic/calculus_definite_v1.jsonl",
     "data/synthetic/calculus_variable_v1.jsonl",
+    "data/synthetic/derivative_v1.jsonl",
     "data/synthetic/functions_v1.jsonl",
     "data/synthetic/ode_v1.jsonl",
+    "data/synthetic/ode_c1_v1.jsonl",
+    "data/synthetic/summation_v1.jsonl",
+    "data/synthetic/limits_v1.jsonl",
+    "data/synthetic/series_v1.jsonl",
+    "data/synthetic/elementary_v1.jsonl",
+    "data/synthetic/complex_v1.jsonl",
+    "data/synthetic/polynomials_v1.jsonl",
+    "data/synthetic/matrix_v1.jsonl",
     "data/synthetic/multivariate_v1.jsonl",
     "data/synthetic/sequences_v1.jsonl",
     "data/synthetic/geometry_v1.jsonl",
+    "data/synthetic/geometry_ext_v1.jsonl",
+    "data/synthetic/ntheory_ext_v1.jsonl",
+    "data/synthetic/combinatorics_v1.jsonl",
     "data/synthetic/edge_v1.jsonl",
     "data/synthetic/numtheory_v1.jsonl",
+    # GATED portfolio slices — opt-in via --include-gated-slices (excluded
+    # from the default RL mixture because they explore non-eval mathematical
+    # domains and risk output-contract drift / negative transfer).
+    "data/synthetic/special_v1.jsonl",
+    "data/synthetic/stats_v1.jsonl",
+    "data/synthetic/sets_v1.jsonl",
+    "data/synthetic/solving_v1.jsonl",
 ]
 
 
@@ -75,6 +112,7 @@ def main() -> int:
     ap.add_argument("--out", default="data/synthetic/train_mixture.jsonl")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--size", type=int, default=22002)
+    ap.add_argument("--include-gated-slices", action="store_true", help="also add rows with metadata.gated=true (special funcs/stats/sets/solving)")
     ap.add_argument("--train", default="data/split/train.jsonl")
     args = ap.parse_args()
 
@@ -115,6 +153,14 @@ def main() -> int:
                 continue
             seen.add(key)
             synth.append(r)
+    # gated rows are kept in `synth` only when explicitly requested; default RL
+    # mixture excludes them because they explore non-eval mathematical domains
+    # and risk output-contract drift / negative transfer.
+    if not args.include_gated_slices:
+        n_gated_in_synth = sum(1 for r in synth if r.get("metadata", {}).get("gated"))
+        if n_gated_in_synth:
+            print(f"gated rows available but excluded: {n_gated_in_synth}")
+        synth = [r for r in synth if not r.get("metadata", {}).get("gated")]
     print(f"synthetic: {len(synth)} oracle-verified rows loaded (latex-deduped)")
 
     # slice shares of the synthetic portion
@@ -123,7 +169,13 @@ def main() -> int:
     for r in synth:
         by_slice.setdefault(r.get("metadata", {}).get("slice", "other"), []).append(r)
     picked: list[dict] = []
-    for sl, frac in _SLICE_ORDER:
+    slice_order = list(_SLICE_ORDER)
+    if args.include_gated_slices:
+        # shift calculus budget into the gated portfolio slices
+        slice_order = [(s, f if s != "calculus" else f - 0.16) for s, f in slice_order]
+        slice_order = [(s, f) for s, f in slice_order if f > 0]
+        slice_order.extend(_GATED_SLICE_ORDER)
+    for sl, frac in slice_order:
         pool = by_slice.get(sl, [])
         take = min(len(pool), int(round(n_synth * frac)))
         if take:

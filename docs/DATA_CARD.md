@@ -13,6 +13,9 @@ are reproducible).
 | `data/split/val.json` (committed) | 397 | yes | checkpoint selection |
 | `data/split/test.json` (committed) | 397 | yes | **frozen eval** (never trained on) |
 | `data/public_test_new_no_sol_no_out.json` (gitignored) | 1,004 | **no** (closed truth) | generalization probe |
+| `data/synthetic/*_v1.jsonl` (committed, 15 families + regen of calculus/derivative) | 14,701 (9,871 unique latex) | yes (oracle-verified) | verified code-first synthetic pool |
+| `data/synthetic/train_mixture_v2.jsonl` (committed, default RL) | 30,000 (65% comp + 35% synth) | yes | SFT/GRPO mixture (gated slices excluded) |
+| `data/synthetic/train_mixture_gated.jsonl` (committed, --include-gated-slices) | 30,000 (with 834 gated rows: special/stats/sets/algebraic) | yes | opt-in gated portfolio mixture |
 
 ## Construction (frozen split)
 
@@ -68,3 +71,24 @@ split.
   any public accuracy figure must cite OUR frozen split, not the competition.
 - `train.json` itself is not re-published (bootcamp licensing) — the split
   JSONs and the generator scripts are the redistributable artifacts.
+
+## Synthetic pool — family inventory (as of 2026-08-11)
+
+24 families registered in `FAMILIES` (21 from SYNTHETIC_EXPANSION + 3 legacy):
+- **Existing (9):** `derivative`, `integration`, `functions`, `geometry`, `multivariate`, `numtheory`, `ode`, `sequences`, `edge`
+- **Plan v1 (12):** `differential_c1`, `limits`, `series_coeff`, `summation`, `polynomial_invariants`, `matrix_scalars`, `ntheory_ext`, `combinatorics`, `elementary_ext`, `complex_eval`, `geometry_ext`, `solving_scalarized`
+- **Gated portfolio (4, opt-in):** `special_functions`, `stats_moments`, `sets_cardinality`, `solving_scalarized` — excluded from default RL mixture.
+
+Pool size: **14,701 rows / 9,871 unique latex** (after regen of calculus_*_v1 and derivative_v1 with `repr_surface=True` to cover the competition's `\mathtt{\text{Integral/Derivative}}` surface).
+
+**Notation alignment vs frozen test (5/5 patterns covered, 100%):**
+
+| Test pattern | Test rows | Pool rows |
+|---|---|---|
+| `\frac{d}{dx}` | 27 | 1,100 |
+| `\log` | 22 | 498 |
+| `\sum` | 33 | 426 |
+| `\mathtt{\text{Integral(...}}` | 41 | 795 |
+| `\mathtt{\text{Derivative(...}}` | 25 | 400 |
+
+**Coefficient kind distribution:** `n/a 10761, rational 541, integer 2378, decimal 920, float 101` (synthetic pool). Train's decimal share: 16.9%.
