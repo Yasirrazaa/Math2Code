@@ -1,0 +1,11 @@
+{
+  "source_log": "/home/yasir/t460p-backup/portfolio-projects/Math2Code/m2c_verify_partial.log",
+  "rows_checked": 15000,
+  "rows_total_target": 22796,
+  "rows_remaining": 7796,
+  "n_pass_full": 15000,
+  "n_fail_any": 0,
+  "pct_pass": 100.0,
+  "status": "PARTIAL \u2014 full run was killed before completion",
+  "how_to_resume": "Re-run `python scripts/verify_competition.py --split all --workers 6 --timeout 10 --out data/split/verify_report.json`. The script is idempotent: it re-runs all rows. If you want incremental resume, modify the script to skip task_ids already in this partial report (none \u2014 the partial report has only aggregates, no per-row data). Suggestion: just re-run from scratch (~2h on this machine)."
+}

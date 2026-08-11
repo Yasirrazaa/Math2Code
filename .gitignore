@@ -63,3 +63,6 @@ data/synthetic/train_mixture*.jsonl
 
 # Local agent scratch (subagent run artifacts)
 .pi-subagents/
+
+# Verification run logs (reconstruct via scripts/finalize_partial_verify.py if lost)
+m2c_*.log
