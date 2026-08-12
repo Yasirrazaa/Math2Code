@@ -126,7 +126,14 @@ def main() -> int:
             expected = tc.get("output")
             try:
                 subs = {sp.Symbol(k): v for k, v in inp.items()}
-                got = complex(expr.subs(subs).evalf())
+                # Apply .doit() before substitution for expressions containing Integral
+                # (unevaluated integrands: 1893 integration rows). This resolves the
+                # representation-form Integral expressions to closed-form antiderivatives.
+                # Differential Eq-form rows (1896) remain non-evaluable (intentional).
+                evaluated_expr = expr
+                if expr.has(sp.Integral):
+                    evaluated_expr = expr.doit()
+                got = complex(evaluated_expr.subs(subs).evalf())
                 # Build a string to use outputs_match (it accepts str)
                 got_str = (
                     f"{got.real}{got.imag:+}j"
