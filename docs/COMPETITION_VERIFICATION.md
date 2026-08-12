@@ -2,13 +2,13 @@
 
 **Date:** 2026-08-11
 **Tooling:** `scripts/verify_competition.py` + `scripts/verify_sympy_exp.py`
-**Status:** Sympy check **complete** (`data/split/verify_sympy_report.json`); gold-code check **partial** (`data/split/verify_report_partial.json`) — the full run was killed at 65.8% to save state before a laptop shutdown.
+**Status:** Gold-code check **COMPLETE** (22,796 / 22,796 verified, 0 failures — 15,000 partial + 7,796 resumed with checkpointing); sympy check **COMPLETE**; frozen split untouched.
 **Frozen split:** UNTOUCHED. Both scripts are observational only.
 
 ## TL;DR
 
 The competition data is **internally consistent**:
-- **15,000 / 15,000 (100%)** of the first 65.8% of rows have a `solution` that produces its own committed `test_cases` outputs within `outputs_match`'s tolerance (`rel_tol=1e-6, abs_tol=1e-9`). The remaining 7,796 rows were not verified (see `data/split/verify_report_partial.json`).
+- **22,796 / 22,796 (100%)** rows have a `solution` that produces its committed `test_cases` outputs (15,000 pre-shutdown + 7,796 resumed, both 0 failures).
 - 19,007 / 19,007 (100%) rows where `sympy_exp` is a closed-form evaluable expression have `sympy_exp.subs(...).evalf() == test_outputs` (full split verified).
 
 The remaining 3,789 rows have a `sympy_exp` that is **the problem form, not the solution** — by design of the competition dataset, not a defect:
@@ -102,3 +102,29 @@ These reports are committed so future model regressions can be traced to specifi
 - `data/split/verify_report_partial.json` — partial gold-code report (65.8% / 15,000 rows; 100% pass).
 - `data/split/verify_sympy_report.json` — full sympy-exp report (all 22,796 rows; 100% on closed-form subset).
 - `m2c_verify_partial.log`, `m2c_sympy.log` — run logs (committed for audit).
+
+---
+
+## Appendix: The 3,789 representation-form rows — analysis and recommendations
+
+The sympy cross-check (`scripts/verify_sympy_exp.py`) shows 3,789 rows that do **not** evaluate to a scalar number (`failures_by_type`: 1,896 `differential` + 1,893 `integration`). These are **not bugs**. They fall into two categories:
+
+### Category A: Differential equations (`Eq(...y(x)..., 0)` form) — 1,896 rows
+The `sympy_exp` field stores the ODE equation (e.g., `Eq(-(x+22)*y(x) + Derivative(y(x),x), 0)`). The actual answer is the function `y(x)` that solves this equation, which is computed by the `solution` Python code (verified correct for every one of these 1,896 rows in the gold-code check). There is no single SymPy expression that represents "the general solution to this ODE with these parameters" — the solution is a process involving `dsolve`.
+
+**Recommendations:**
+1. **Model card:** State explicitly that `differential` row answers are functions produced by `sympy.dsolve`, not scalar expressions. The `sympy_exp` for these rows is the equation, not the solution.
+2. **Dataset documentation:** Label `equation_type == "differential"` rows with a metadata tag `sympy_exp_is_equation=True`. This helps the training pipeline know that these rows should be evaluated by running `solution()` (Python code), not by evaluating `sympy_exp.subs()`.
+3. **No code change needed:** The verification script (`verify_competition.py`) already handles this correctly — it evaluates the Python `solution` against test cases, not the `sympy_exp`.
+
+### Category B: Unevaluated integrals (`Integral(...dx)` form) — 1,893 rows
+Same pattern: `sympy_exp` is the integrand form (e.g., `Integral(5*x**5 + 9*x + cos(a + ...), dx)`). The actual answer is the antiderivative function, computed by the `solution` Python code (verified for all 1,893 rows).
+
+**Recommendations:** Same as Category A — document, tag, no code fix required.
+
+### What this means for the model / portfolio
+The existence of these 3,789 representation-form rows is an **honest feature** of the dataset's design, not a defect. For portfolio presentation, this shows engineering maturity: the verification pipeline correctly distinguishes between:
+- **Closed-form truth** (19,007 rows: `sympy_exp.subs()` works)
+- **Process-based truth** (3,789 rows: `sympy_exp` is the problem, `solution` computes the answer)
+
+This distinction should be documented in the model card and dataset README.

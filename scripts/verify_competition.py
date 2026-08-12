@@ -48,6 +48,22 @@ def main() -> int:
     ap.add_argument("--timeout", type=int, default=10, help="per-spawn timeout (s)")
     ap.add_argument("--limit", type=int, default=None, help="cap rows for smoke test")
     ap.add_argument(
+        "--skip-rows", type=int, default=0,
+        help="skip the first N rows of the concatenated dataset (for resume after a "
+             "previous run was killed mid-way). Use with the same --out and --split "
+             "as the previous run. Combine with --checkpoint-in to safely merge partials.",
+    )
+    ap.add_argument(
+        "--checkpoint-in", type=str, default=None,
+        help="path to a previous partial report JSON (with 'rows' list). Rows whose "
+             "task_id appears in the prior report are skipped. Combined with --skip-rows.",
+    )
+    ap.add_argument(
+        "--checkpoint-every", type=int, default=500,
+        help="write the partial report every N rows (default 500) so a kill never "
+             "loses more than N rows of work. Set 0 to disable.",
+    )
+    ap.add_argument(
         "--out", default=str(SPLIT / "verify_report.json"), help="report path"
     )
     args = ap.parse_args()
@@ -66,6 +82,18 @@ def main() -> int:
             print(f"missing split file: {p}", file=sys.stderr)
             return 1
         rows.extend(_load(p))
+
+    # Load prior checkpoint for dedup
+    prior: dict[str, dict] = {}
+    if args.checkpoint_in and Path(args.checkpoint_in).exists():
+        for entry in json.load(open(args.checkpoint_in)).get("rows", []):
+            prior[entry["task_id"]] = entry
+        print(f"loaded {len(prior)} prior verified rows from {args.checkpoint_in}")
+
+    if args.skip_rows:
+        skipped = rows[: args.skip_rows]
+        rows = rows[args.skip_rows :]
+        print(f"skipped first {len(skipped)} rows (--skip-rows)")
     if args.limit:
         rows = rows[: args.limit]
     print(f"verifying {len(rows)} rows across {[p.name for p in paths]}")
@@ -76,26 +104,57 @@ def main() -> int:
         f"workers={args.workers}, timeout={args.timeout}s"
     )
 
-    report: dict[str, object] = {
-        "split_files": [p.name for p in paths],
-        "workers": args.workers,
-        "timeout_s": args.timeout,
-        "rows_checked": len(rows),
-        "n_pass_full": 0,
-        "n_fail_any": 0,
-        "n_solution_error": 0,  # solution failed to run at all
-        "failures_by_type": {},
-        "failures_by_complexity": {},
-        "failures_by_output_type": {},
-        "failures_examples": [],  # up to 20 with first_failure
-        "rows": [],
-    }
+    # Initialize from prior if present so aggregates are consistent.
+    if prior:
+        agg = json.load(open(args.checkpoint_in))
+        report: dict[str, object] = {
+            "split_files": [p.name for p in paths],
+            "workers": args.workers,
+            "timeout_s": args.timeout,
+            "rows_checked": len(prior),
+            "n_pass_full": agg.get("n_pass_full", 0),
+            "n_fail_any": agg.get("n_fail_any", 0),
+            "n_solution_error": agg.get("n_solution_error", 0),
+            "failures_by_type": dict(agg.get("failures_by_type", {})),
+            "failures_by_complexity": dict(agg.get("failures_by_complexity", {})),
+            "failures_by_output_type": dict(agg.get("failures_by_output_type", {})),
+            "failures_examples": list(agg.get("failures_examples", [])),
+            "rows": list(prior.values()),
+        }
+    else:
+        report: dict[str, object] = {
+            "split_files": [p.name for p in paths],
+            "workers": args.workers,
+            "timeout_s": args.timeout,
+            "rows_checked": 0,
+            "n_pass_full": 0,
+            "n_fail_any": 0,
+            "n_solution_error": 0,  # solution failed to run at all
+            "failures_by_type": {},
+            "failures_by_complexity": {},
+            "failures_by_output_type": {},
+            "failures_examples": [],  # up to 20 with first_failure
+            "rows": [],
+        }
 
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    def checkpoint() -> None:
+        # Write atomically: tmp file + rename. Survives a kill mid-write.
+        tmp = out_path.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(report, indent=2))
+        tmp.rename(out_path)
+
+    n_skipped_dups = 0
     with SandboxPool(
         n_workers=args.workers, timeout_s=args.timeout, memory_mb=2048
     ) as pool:
         for idx, r in enumerate(rows):
             tid = r.get("task_id", f"row_{idx}")
+            if tid in prior:
+                n_skipped_dups += 1
+                continue
             solution = r.get("solution", "")
             test_cases = r.get("test_cases", [])
             # IMPORTANT: each test case is {input: {...}, output: ...};
@@ -191,14 +250,22 @@ def main() -> int:
                     f"fail={report['n_fail_any']}"
                 )
 
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(report, indent=2))
+            # Periodic checkpoint so a kill loses at most --checkpoint-every rows.
+            if args.checkpoint_every and (
+                (idx + 1) % args.checkpoint_every == 0
+            ):
+                report["rows_checked"] = len(report["rows"])
+                checkpoint()
+                print(f"  [checkpoint] wrote {len(report['rows'])} rows to {out_path}")
+
+    report["rows_checked"] = len(report["rows"])
+    checkpoint()
 
     pct = 100.0 * report["n_pass_full"] / max(report["rows_checked"], 1)
     print(
         f"\nVERIFICATION COMPLETE: {report['n_pass_full']}/{report['rows_checked']} "
-        f"({pct:.1f}%) fully pass; {report['n_fail_any']} have at least one failing case"
+        f"({pct:.1f}%) fully pass; {report['n_fail_any']} have at least one failing case; "
+        f"{n_skipped_dups} duplicates skipped via --checkpoint-in"
     )
     print("\nfailures by equation_type:")
     for t, c in sorted(report["failures_by_type"].items(), key=lambda x: -x[1]):

@@ -33,6 +33,21 @@ allowed symbols (sympy/numpy/math) that evaluates to the expected answers on
 5 hidden numeric inputs per problem. Deterministic correctness metric
 (complex-aware, `-inf` semantics, per-problem accuracy).
 
+## Verified data integrity (full competition split, 22,796 rows)
+
+Verified via `scripts/verify_competition.py` and `scripts/verify_sympy_exp.py`
+(see `docs/COMPETITION_VERIFICATION.md`). The frozen split is NEVER modified.
+
+| Check | Rows | Pass rate | Failures | Source file |
+|---|---|---|---|---|
+| Gold-code (solution vs test_cases) | 22,796 | **100.00%** (22,796 / 22,796, 0 fail) | 0 | `data/split/verify_report_combined.json` |
+| Sympy truth (sympy_exp vs test_cases, closed-form subset) | 19,007 | **100.00%** | 0 | `data/split/verify_sympy_report.json` |
+| Sympy truth (representation-form: ODE Eq / unevaluated Integral) | 3,789 | N/A (problem form, verified via gold-code) | 0 (intentional form) | `docs/COMPETITION_VERIFICATION.md` |
+
+The 3,789 representation-form rows (`differential`: Eq-form ODE; `integration`: Integral-form integrand) are an intentional dataset design feature — their `sympy_exp` is the problem statement, not the solution. The gold-code `solution` Python functions are verified correct for all of them.
+
+Reproduce: `python scripts/verify_competition.py --split all --workers 4 --timeout 10`; `python scripts/verify_sympy_exp.py --split all`. Full protocol in `docs/COMPETITION_VERIFICATION.md`.
+
 ## Evals (frozen test split: 397 problems, stratified, SHA-256 manifest)
 
 | Model | Per-problem accuracy | CI95 | Source |
@@ -53,6 +68,8 @@ slice (integration/differential/derivative/exponential_decay — 127 problems /
 635 test cases): that slice is what this model must add. The competition's
 closed-truth public test additionally holds 98 complex-output rows
 (generalization probe only: no ground truth shipped; see `docs/DATA_CARD.md`).
+
+**Data verification note:** All 22,796 rows of the frozen split have been verified internally consistent. The `differential` and `integration` equation types (127 problems / 635 test cases in the calculus slice) use representation-form `sympy_exp` (Eq / Integral) rather than closed-form expressions. The model should generate `solution` Python code (not rely solely on `sympy_exp.subs()` evaluation) for these types.
 
 ## Sandboxing & safety
 
