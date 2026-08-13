@@ -53,6 +53,7 @@ def _on_alarm(signum: int, frame: Any) -> None:
     del signum, frame
     raise _IterTimeoutError()
 
+
 # ---------------------------------------------------------------------------
 # coefficients
 # ---------------------------------------------------------------------------
@@ -88,9 +89,7 @@ def _probe_safe(
     vals: list[float]
     if ints:
         lo_i, hi_i = int(low), int(high)
-        vals = [float(lo_i + k) for k in range(5) if lo_i + k <= hi_i] or [
-            float(lo_i)
-        ]
+        vals = [float(lo_i + k) for k in range(5) if lo_i + k <= hi_i] or [float(lo_i)]
     else:
         vals = [low + (high - low) * k / 4.0 for k in range(5)]
     rng = random.Random(int_seed("probe"))
@@ -113,6 +112,7 @@ def _probe_safe(
 # ---------------------------------------------------------------------------
 # base atoms: (name, builder(a,b,c) -> expr, sopt(a,b,c) -> dict, n_vars)
 # ---------------------------------------------------------------------------
+
 
 def _sopt(*, low: float = -5.0, high: float = 5.0, **kw: Any) -> dict[str, Any]:
     return {"low": low, "high": high, **kw}

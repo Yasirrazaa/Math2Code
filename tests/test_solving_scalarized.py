@@ -66,14 +66,12 @@ def test_gate_holds_substitution_residual() -> None:
         eqs = r.metadata["eqs"]
         assert eqs, r.task_id
         for lhs_s, rhs_s in eqs:
-            residual = sp.simplify(
-                sp.sympify(lhs_s).subs(sol) - sp.sympify(rhs_s)
-            )
+            residual = sp.simplify(sp.sympify(lhs_s).subs(sol) - sp.sympify(rhs_s))
             assert residual == 0, (r.task_id, lhs_s, rhs_s, truth)
         # the committed output must equal the exact truth
         expected = float(sp.N(truth))
         for tc in r.test_cases:
-            assert abs(float(tc.output) - expected) < 1e-12
+            assert abs(float(tc.output) - expected) < 1e-12  # type: ignore[arg-type]
 
 
 def test_all_kinds_present() -> None:
@@ -87,7 +85,7 @@ def test_solution_matches_truth() -> None:
     for r in _gen(5):
         res = execute_code(r.solution or "", inputs={})
         assert res.ok, res.stderr
-        assert abs(float(res.stdout) - float(r.test_cases[0].output)) < 1e-9
+        assert abs(float(res.stdout) - float(r.test_cases[0].output)) < 1e-9  # type: ignore[arg-type]
 
 
 def test_oracle_verification() -> None:

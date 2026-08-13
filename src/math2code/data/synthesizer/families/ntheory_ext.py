@@ -123,7 +123,13 @@ def _modinv_valid(row: MathCodePair) -> bool:
 
 # (vocab, input symbols, code builder, sampler kwargs, row-validity filter)
 _TEMPLATES: list[
-    tuple[str, list[sp.Symbol], Callable[[], str], dict[str, Any], Callable[[MathCodePair], bool] | None]
+    tuple[
+        str,
+        list[sp.Symbol],
+        Callable[[], str],
+        dict[str, Any],
+        Callable[[MathCodePair], bool] | None,
+    ]
 ] = [
     ("sigma", [_N], _sigma_code, {"ints_only": True, "low": 2, "high": 200}, None),
     ("tau", [_N], _tau_code, {"ints_only": True, "low": 2, "high": 200}, None),
@@ -131,8 +137,20 @@ _TEMPLATES: list[
     ("mu", [_N], _mu_code, {"ints_only": True, "low": 2, "high": 200}, None),
     ("pi", [_N], _primepi_code, {"ints_only": True, "low": 2, "high": 200}, None),
     ("p", [_N], _partition_code, {"ints_only": True, "low": 2, "high": 40}, None),
-    ("modinv", [_A, _M], _modinv_code, {"ints_only": True, "low": 2, "high": 60}, _modinv_valid),
-    ("powermod", [_A, _B, _M], _powermod_code, {"ints_only": True, "low": 2, "high": 60}, None),
+    (
+        "modinv",
+        [_A, _M],
+        _modinv_code,
+        {"ints_only": True, "low": 2, "high": 60},
+        _modinv_valid,
+    ),
+    (
+        "powermod",
+        [_A, _B, _M],
+        _powermod_code,
+        {"ints_only": True, "low": 2, "high": 60},
+        None,
+    ),
 ]
 
 
@@ -149,6 +167,7 @@ class NumberTheoryExtFamily(SynthFamily):
     ) -> list[MathCodePair]:
         rng = random.Random(int_seed(f"ntheory_ext:{seed}"))
         out: list[MathCodePair] = []
+        pool = opts.get("pool")  # shared SandboxPool -> fast truth_code evals
         i = 0
         while len(out) < count and i < count * 80:
             i += 1
@@ -168,6 +187,7 @@ class NumberTheoryExtFamily(SynthFamily):
                 sample_kwargs=sopt,
                 equation_type="number_theory",
                 custom_code=(code, code),  # solution == truth for these families
+                pool=pool,
             )
             for row in rows:
                 if valid is None or valid(row):

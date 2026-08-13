@@ -7,6 +7,8 @@ module-scoped generation and ONE sandbox pool.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import pytest
 import sympy as sp
 
@@ -18,7 +20,7 @@ from math2code.schemas import MathCodePair
 
 
 @pytest.fixture(scope="module")
-def pool() -> SandboxPool:
+def pool() -> Iterator[SandboxPool]:
     with SandboxPool(n_workers=2, timeout_s=10, memory_mb=2048) as p:
         yield p
 
@@ -85,7 +87,7 @@ def test_truth_correctness_exact(rows: list[MathCodePair], pool: SandboxPool) ->
 def test_magnitude_guard(rows: list[MathCodePair]) -> None:
     for r in rows:
         for tc in r.test_cases:
-            assert 0 < abs(float(tc.output or 0)) <= 10**9
+            assert 0 < abs(float(tc.output or 0)) <= 10**9  # type: ignore[arg-type]
 
 
 def test_oracle_verify(pool: SandboxPool) -> None:

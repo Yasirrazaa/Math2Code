@@ -21,11 +21,14 @@ def _expected(kind: str, p: dict[str, int]) -> float:
         d2 = (p["x2"] - p["x1"]) ** 2 + (p["y2"] - p["y1"]) ** 2
         return float(d2) if kind == "dist_sq" else math.sqrt(d2)
     if kind == "tri_coord":
-        return abs(
-            p["x1"] * (p["y2"] - p["y3"])
-            + p["x2"] * (p["y3"] - p["y1"])
-            + p["x3"] * (p["y1"] - p["y2"])
-        ) / 2.0
+        return (
+            abs(
+                p["x1"] * (p["y2"] - p["y3"])
+                + p["x2"] * (p["y3"] - p["y1"])
+                + p["x3"] * (p["y1"] - p["y2"])
+            )
+            / 2.0
+        )
     if kind == "tri_heron":
         a, b, c = p["a"], p["b"], p["c"]
         s = (a + b + c) / 2.0
@@ -40,7 +43,9 @@ def _expected(kind: str, p: dict[str, int]) -> float:
         return float(p["a"] * p["b"])
     if kind == "angle":
         dot = p["u1"] * p["v1"] + p["u2"] * p["v2"]
-        return math.acos(dot / (math.hypot(p["u1"], p["u2"]) * math.hypot(p["v1"], p["v2"])))
+        return math.acos(
+            dot / (math.hypot(p["u1"], p["u2"]) * math.hypot(p["v1"], p["v2"]))
+        )
     raise AssertionError(kind)
 
 
@@ -49,9 +54,7 @@ def test_deterministic() -> None:
     b = _gen(5, seed=42)
     assert [r.task_id for r in a] == [r.task_id for r in b]
     assert [r.latex_expression for r in a] == [r.latex_expression for r in b]
-    assert [r.test_cases[0].output for r in a] == [
-        r.test_cases[0].output for r in b
-    ]
+    assert [r.test_cases[0].output for r in a] == [r.test_cases[0].output for r in b]
 
 
 def test_contract_shape() -> None:

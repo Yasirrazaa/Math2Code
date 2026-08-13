@@ -43,7 +43,13 @@ def test_contract_shape() -> None:
         assert r.synthetic is True
         assert r.metadata["slice"] == "matrix"
         assert r.metadata["size"] in (2, 3, 4)
-        assert r.metadata["query"] in ("det", "trace", "inverse", "charpoly", "frobenius")
+        assert r.metadata["query"] in (
+            "det",
+            "trace",
+            "inverse",
+            "charpoly",
+            "frobenius",
+        )
         assert r.metadata["coefficient_kind"] in ("integer", "rational")
         for tc in r.test_cases:
             assert tc.output is not None
@@ -56,7 +62,7 @@ def test_ground_truth_exact() -> None:
     for r in rows:
         truth = sp.sympify(r.sympy_exp)  # type: ignore[arg-type]
         for tc in r.test_cases:
-            assert sp.N(truth) == pytest.approx(complex(tc.output).real, rel=1e-9)
+            assert sp.N(truth) == pytest.approx(complex(tc.output).real, rel=1e-9)  # type: ignore[arg-type]
 
 
 def test_oracle_verification() -> None:

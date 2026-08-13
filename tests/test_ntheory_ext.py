@@ -111,20 +111,24 @@ def test_committed_outputs_correct(rows: list[MathCodePair]) -> None:
         v = r.metadata["vocab"]
         for tc in r.test_cases:
             if v in unary:
-                n = int(tc.input["n"])
+                n = int(tc.input["n"])  # type: ignore[arg-type]
                 expected = float(unary[v](n))  # type: ignore[operator]
-                assert abs(float(tc.output) - expected) < 1e-9, (r.task_id, v, n)
+                assert abs(float(tc.output) - expected) < 1e-9, (  # type: ignore[arg-type]
+                    r.task_id,
+                    v,
+                    n,
+                )
             elif v == "modinv":
-                a, m = int(tc.input["a"]), int(tc.input["m"])
+                a, m = int(tc.input["a"]), int(tc.input["m"])  # type: ignore[arg-type]
                 assert math.gcd(a, m) == 1, (r.task_id, a, m)  # filter guarantees it
-                assert abs(float(tc.output) - float(sp.mod_inverse(a, m))) < 1e-9
+                assert abs(float(tc.output) - float(sp.mod_inverse(a, m))) < 1e-9  # type: ignore[arg-type]
             elif v == "powermod":
                 a, b, m = (
-                    int(tc.input["a"]),
-                    int(tc.input["b"]),
-                    int(tc.input["m"]),
+                    int(tc.input["a"]),  # type: ignore[arg-type]
+                    int(tc.input["b"]),  # type: ignore[arg-type]
+                    int(tc.input["m"]),  # type: ignore[arg-type]
                 )
-                assert abs(float(tc.output) - float(pow(a, b, m))) < 1e-9
+                assert abs(float(tc.output) - float(pow(a, b, m))) < 1e-9  # type: ignore[arg-type]
             else:  # pragma: no cover - vocab set guards this
                 raise AssertionError(f"unknown vocab {v}")
 
@@ -135,7 +139,9 @@ def test_modinv_valid_filter() -> None:
         task_id="bad",
         latex_expression=r"\operatorname{modinv}{\left(a,m \right)}",
         test_cases=[
-            SchemaTestCase(input={"a": 4, "m": 6}, output=0.0),  # gcd(4,6)=2 -> sentinel
+            SchemaTestCase(
+                input={"a": 4, "m": 6}, output=0.0
+            ),  # gcd(4,6)=2 -> sentinel
             SchemaTestCase(input={"a": 3, "m": 7}, output=5.0),
         ],
     )
@@ -154,9 +160,9 @@ def test_modinv_valid_filter() -> None:
 def test_truth_code_runs_and_matches_committed(rows: list[MathCodePair]) -> None:
     for r in rows[:3]:
         for tc in r.test_cases:
-            res = execute_code(r.truth_code, inputs=tc.input)
+            res = execute_code(r.truth_code or "", inputs=tc.input)
             assert res.ok, (r.task_id, res.stderr)
-            assert abs(float(res.stdout) - float(tc.output)) < 1e-9, r.task_id
+            assert abs(float(res.stdout) - float(tc.output)) < 1e-9, r.task_id  # type: ignore[arg-type]
 
 
 def test_oracle_verify(rows: list[MathCodePair]) -> None:

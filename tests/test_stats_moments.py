@@ -59,9 +59,7 @@ def test_committed_outputs_equal_closed_form() -> None:
     rows = _rows(count=8, seed=3)
     for r in rows:
         params = {k: sp.sympify(v) for k, v in r.metadata["params"].items()}
-        expected = float(
-            moment_value(r.metadata["dist"], params, r.metadata["moment"])
-        )
+        expected = float(moment_value(r.metadata["dist"], params, r.metadata["moment"]))
         for tc in r.test_cases:
             assert abs(parse_number(tc.output).real - expected) < 1e-9, (
                 r.task_id,

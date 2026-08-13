@@ -139,15 +139,105 @@ class SandboxPool:
         )
         old.shutdown(wait=False, cancel_futures=True)
 
+    def run_many(
+        self,
+        tasks: list[tuple[str, dict[str, Any]]],
+    ) -> list[base.ExecutionResult]:
+        """Execute many (code, inputs) tasks concurrently; results align to `tasks`.
+
+        Each task becomes one worker future; a bounded in-flight window
+        (8 x workers) keeps memory flat while the pool stays saturated — this
+        is the fast path for verification loops and RL rewards, which
+        previously submitted one future and blocked (no speedup beyond 1
+        worker). Per-task SIGALRM bounds every run; a crashed worker triggers
+        the same self-heal as `execute` (pool restart + one retry of the
+        affected window). Safety analysis runs once per unique code string.
+        """
+        if not tasks:
+            return []
+        results: list[base.ExecutionResult | None] = [None] * len(tasks)
+        safety: dict[str, str | None] = {}  # code -> None (ok) or SafetyError
+        window = max(1, self.n_workers * 8)
+        for start in range(0, len(tasks), window):
+            indices = list(range(start, min(start + window, len(tasks))))
+            for attempt in range(2):  # one self-heal retry per window
+                futs: dict[cf.Future, int] = {}
+                for i in indices:
+                    if results[i] is not None:
+                        continue
+                    code, inputs = tasks[i]
+                    if code not in safety:
+                        try:
+                            base.analyze_code(code)
+                            safety[code] = None
+                        except base.SafetyError as exc:
+                            safety[code] = str(exc)
+                    if safety[code] is not None:
+                        results[i] = base.ExecutionResult(
+                            exit_code=-1, safety_error=safety[code]
+                        )
+                        continue
+                    futs[
+                        self._pool.submit(_run_one, (code, inputs), self.timeout_s)
+                    ] = i
+                if not futs:
+                    break
+                crashed = False
+                try:
+                    for fut in cf.as_completed(futs):
+                        i = futs[fut]
+                        try:
+                            exit_code, stdout, stderr, timed_out = fut.result(
+                                timeout=self.timeout_s + 1.0
+                            )
+                            results[i] = base.ExecutionResult(
+                                exit_code=exit_code,
+                                stdout=stdout,
+                                stderr=stderr,
+                                timed_out=timed_out,
+                            )
+                        except cf.TimeoutError:
+                            results[i] = base.ExecutionResult(
+                                exit_code=-1,
+                                timed_out=True,
+                                stderr="pool timeout",
+                            )
+                        except BrokenProcessPool:
+                            results[i] = None  # retried after restart
+                            crashed = True
+                        except Exception as exc:
+                            results[i] = base.ExecutionResult(
+                                exit_code=-1, stderr=f"worker error: {exc}"
+                            )
+                except BrokenProcessPool:
+                    crashed = True
+                if crashed:
+                    self._restart_pool()
+                    if attempt == 1:
+                        for i in indices:
+                            if results[i] is None:
+                                results[i] = base.ExecutionResult(
+                                    exit_code=-1,
+                                    stderr="worker crashed twice; pool unhealthy",
+                                )
+                        break
+        return [
+            r
+            if r is not None
+            else base.ExecutionResult(exit_code=-1, stderr="worker error (unresolved)")
+            for r in results
+        ]
+
     def run_solution_on_cases(
         self,
         code: str,
         test_cases: list[dict[str, Any]],
     ) -> tuple[list[str | None], list[str]]:
+        """Run `code` on every case concurrently; returns (outputs, errors)."""
+        results = self.run_many([(code, tc) for tc in test_cases])
         outputs: list[str | None] = []
         errors: list[str] = []
-        for tc in test_cases:
-            res = self.execute(code, inputs=tc)
+        for res in results:
             if res.ok:
                 outputs.append(res.stdout or "0")
             else:

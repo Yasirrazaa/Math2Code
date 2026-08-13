@@ -3,6 +3,7 @@
 into one unified 22796-row report. Keeps the full per-row detail from both.
 Usage: python scripts/combine_verify_reports.py [--partial data/split/verify_report_partial.json] [--full data/split/verify_report.json] [--out data/split/verify_report_combined.json]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -62,12 +63,14 @@ def main() -> int:
             ot = r.get("output_type", "?")
             failures_by_output_type[ot] = failures_by_output_type.get(ot, 0) + 1
             if len(failures_examples) < 20:
-                failures_examples.append({
-                    "task_id": r["task_id"],
-                    "equation_type": t,
-                    "complexity": c,
-                    "first_failure": r.get("first_failure"),
-                })
+                failures_examples.append(
+                    {
+                        "task_id": r["task_id"],
+                        "equation_type": t,
+                        "complexity": c,
+                        "first_failure": r.get("first_failure"),
+                    }
+                )
 
     combined = {
         "description": "Combined verification report: partial (pre-shutdown, 15000 rows) + full (post-resume, 7796 rows) = 22796 total",
@@ -75,13 +78,17 @@ def main() -> int:
             "partial": str(partial_path),
             "full": str(full_path),
         },
+        "partial_row_count": partial_row_count,
+        "full_row_count": full_row_count,
         "rows_total_in_combined": len(unified_rows),
         "n_pass_full": n_pass,
         "n_fail_any": n_fail,
         "pct_pass": round(100.0 * n_pass / max(len(unified_rows), 1), 2),
         "failures_by_type": dict(sorted(failures_by_type.items(), key=lambda x: -x[1])),
         "failures_by_complexity": dict(sorted(failures_by_complexity.items())),
-        "failures_by_output_type": dict(sorted(failures_by_output_type.items(), key=lambda x: -x[1])),
+        "failures_by_output_type": dict(
+            sorted(failures_by_output_type.items(), key=lambda x: -x[1])
+        ),
         "failures_examples": failures_examples,
         "rows": [unified_rows[tid] for tid in sorted(unified_rows.keys())],
         # Metadata preserved from both sources for audit

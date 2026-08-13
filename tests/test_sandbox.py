@@ -104,3 +104,52 @@ def test_worker_run_one_direct() -> None:
         ("def calculate(x):\n    return x + 1", {"x": 1}), 2.0
     )
     assert exit_code == 0 and stdout == "2.0" and not stderr and not timed_out
+
+
+# ---------------------------------------------------------------------------
+# run_many: concurrent batch execution (results aligned to inputs)
+# ---------------------------------------------------------------------------
+
+
+def test_run_many_aligns_with_execute() -> None:
+    code = "def calculate(x):\n    return x * 2"
+    inputs = [{"x": i} for i in range(8)]
+    with SandboxPool(n_workers=2) as pool:
+        many = pool.run_many([(code, inp) for inp in inputs])
+        singles = [pool.execute(code, inputs=inp) for inp in inputs]
+    assert len(many) == len(inputs)
+    assert all(r.ok for r in many)
+    assert [r.stdout for r in many] == [r.stdout for r in singles]  # order kept
+
+
+def test_run_many_mixed_safety_and_errors() -> None:
+    good = "def calculate(x):\n    return x + 1"
+    bad = "import os\nos.system('id')"
+    with SandboxPool(n_workers=2) as pool:
+        results = pool.run_many([(good, {"x": 1}), (bad, {}), (good, {"x": 2})])
+    assert results[0].ok and results[0].stdout == "2.0"
+    assert not results[1].ok and results[1].safety_error
+    assert results[2].ok and results[2].stdout == "3.0"
+
+
+def test_run_many_timeout_bounded() -> None:
+    hang = "def calculate(x):\n    while True:\n        pass"
+    with SandboxPool(n_workers=2, timeout_s=1.0) as pool:
+        results = pool.run_many([(hang, {"x": 1})])
+    assert len(results) == 1
+    assert results[0].timed_out
+    assert not results[0].ok
+
+
+def test_run_many_empty() -> None:
+    with SandboxPool(n_workers=2) as pool:
+        assert pool.run_many([]) == []
+
+
+def test_run_solution_on_cases_concurrent() -> None:
+    code = "def calculate(x):\n    return x ** 2"
+    cases = [{"x": 1}, {"x": 2}, {"x": 3}]
+    with SandboxPool(n_workers=3) as pool:
+        outputs, errors = pool.run_solution_on_cases(code, cases)
+    assert not errors
+    assert outputs == ["1.0", "4.0", "9.0"]

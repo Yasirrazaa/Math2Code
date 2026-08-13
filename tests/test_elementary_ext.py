@@ -70,9 +70,9 @@ def test_committed_outputs_match_ground_truth() -> None:
             subs = {sp.Symbol(k): sp.Float(v) for k, v in tc.input.items()}
             truth = complex(sp.N(expr.subs(subs)))
             got = parse_number(tc.output)
-            assert cmath.isclose(
-                got, truth, rel_tol=1e-6, abs_tol=1e-9
-            ), f"{r.task_id}: {got} != {truth}"
+            assert cmath.isclose(got, truth, rel_tol=1e-6, abs_tol=1e-9), (
+                f"{r.task_id}: {got} != {truth}"
+            )
 
 
 def test_domain_safety() -> None:
@@ -88,7 +88,7 @@ def test_domain_safety() -> None:
         assert r.output_type == "real"
         for tc in r.test_cases:
             assert not isinstance(tc.output, str)  # no 're+imj' complex strings
-            assert abs(complex(tc.output)) < 1e10
+            assert abs(complex(tc.output)) < 1e10  # type: ignore[arg-type]
 
 
 def test_rows_pass_oracle() -> None:

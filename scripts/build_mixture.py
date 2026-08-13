@@ -112,7 +112,11 @@ def main() -> int:
     ap.add_argument("--out", default="data/synthetic/train_mixture.jsonl")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--size", type=int, default=22002)
-    ap.add_argument("--include-gated-slices", action="store_true", help="also add rows with metadata.gated=true (special funcs/stats/sets/solving)")
+    ap.add_argument(
+        "--include-gated-slices",
+        action="store_true",
+        help="also add rows with metadata.gated=true (special funcs/stats/sets/solving)",
+    )
     ap.add_argument("--train", default="data/split/train.jsonl")
     args = ap.parse_args()
 
@@ -181,7 +185,8 @@ def main() -> int:
         if take:
             picked.extend(rng.sample(pool, take))
     # fill remainder from anything left (best-effort to hit target)
-    leftover = [r for r in synth if r not in picked]
+    picked_ids = {id(r) for r in picked}  # O(1) membership (was O(n^2) list scan)
+    leftover = [r for r in synth if id(r) not in picked_ids]
     picked.extend(rng.sample(leftover, min(len(leftover), n_synth - len(picked))))
     picked = picked[:n_synth]
     print(

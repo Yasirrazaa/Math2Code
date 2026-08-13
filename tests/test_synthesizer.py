@@ -390,6 +390,19 @@ def test_numtheory_truth_code_contract() -> None:
             assert ok, f"{row.task_id}: {reasons}"
 
 
+def test_custom_code_family_pool_equivalence() -> None:
+    """truth_code families must emit byte-identical rows with or without a pool
+    (the pool path replaces subprocess-per-case with concurrent pool exec)."""
+    from math2code.data.synthesizer import NumberTheoryFamily
+
+    without_pool = NumberTheoryFamily().generate(seed=3, prefix="nt", count=3)
+    with SandboxPool(n_workers=2, timeout_s=10, memory_mb=2048) as pool:
+        with_pool = NumberTheoryFamily().generate(
+            seed=3, prefix="nt", count=3, pool=pool
+        )
+    assert _dumps(with_pool) == _dumps(without_pool)
+
+
 def test_mixture_keeps_parameterized_latex_dupes() -> None:
     """gcd rows share one latex but differ in test outputs — all kept."""
     import json
@@ -429,7 +442,7 @@ def test_all_families_metadata_is_json_serializable() -> None:
 
     n_seen = 0
     for name, family_cls in FAMILIES.items():
-        rows = family_cls().generate(seed=42, prefix=name, count=4)
+        rows = family_cls().generate(seed=42, prefix=name, count=4)  # type: ignore[abstract]
         for r in rows:
             n_seen += 1
             try:

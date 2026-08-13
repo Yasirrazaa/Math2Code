@@ -9,6 +9,7 @@ Usage:
         --log m2c_verify_partial.log \\
         --out data/split/verify_report_partial.json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -24,7 +25,9 @@ PROGRESS_RE = re.compile(r"\[(\d+)/(\d+) ([\d.]+)%\] pass=(\d+) fail=(\d+)")
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--log", default=str(ROOT / "m2c_verify_partial.log"))
-    ap.add_argument("--out", default=str(ROOT / "data/split/verify_report_partial.json"))
+    ap.add_argument(
+        "--out", default=str(ROOT / "data/split/verify_report_partial.json")
+    )
     args = ap.parse_args()
 
     rows_done = 0

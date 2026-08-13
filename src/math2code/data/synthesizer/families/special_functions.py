@@ -153,6 +153,7 @@ class SpecialFunctionsFamily(SynthFamily):
         """Deterministically produce `count` special-function objects."""
         rng = random.Random(int_seed(f"special_functions:{seed}"))
         out: list[MathCodePair] = []
+        pool = opts.get("pool")  # shared SandboxPool -> fast truth_code evals
         i = 0
         while len(out) < count and i < count * 60:
             i += 1
@@ -179,6 +180,7 @@ class SpecialFunctionsFamily(SynthFamily):
                         "mode": "exact",
                     },
                     equation_type="special_functions",
+                    pool=pool,
                 )
             else:
                 code = _evalf_code(result)
@@ -198,6 +200,7 @@ class SpecialFunctionsFamily(SynthFamily):
                     },
                     equation_type="special_functions",
                     custom_code=(code, code),
+                    pool=pool,
                 )
             out.extend(rows)
         return out[:count]

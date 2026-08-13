@@ -47,6 +47,48 @@ def test_numeric_check_wrong_code_fails() -> None:
     assert "mismatch" in why
 
 
+def test_numeric_check_falls_back_when_lambdify_unavailable() -> None:
+    """factorial is not numpy-expressible -> vectorized truth must fall back
+    to the per-point evalf path (semantics unchanged)."""
+    p = MathCodePair(
+        task_id="t3",
+        latex_expression=r"x!",
+        sympy_exp="factorial(x)",
+        solution=(
+            "import sympy as sp\n"
+            "def calculate(x):\n"
+            "    return int(sp.factorial(int(x)))"
+        ),
+        test_cases=[TestCase(input={"x": 4}, output=24)],
+    )
+    ok, why = numeric_check(p, p.solution or "")
+    assert ok, why
+
+
+def test_numeric_check_vectorized_truth_matches_gold() -> None:
+    """The lambdify path agrees with the ground truth on fresh jittered inputs."""
+    ok, why = numeric_check(_pair(), "def calculate(x):\n    return 2 * x + 1", n=20)
+    assert ok, why
+
+
+def test_numeric_check_complex_truth_is_compared_not_skipped() -> None:
+    """Complex-valued ground truths (sqrt of a negative arg -> sympy gives a
+    finite complex, numpy gives NaN) must still be compared: a wrong candidate
+    must fail, not pass vacuously because the points were skipped."""
+    p = MathCodePair(
+        task_id="t4",
+        latex_expression=r"\sqrt{x}",
+        sympy_exp="sqrt(x)",
+        solution="import cmath\ndef calculate(x):\n    return cmath.sqrt(x)",
+        test_cases=[TestCase(input={"x": -4.0}, output="0.0+2.0j")],
+    )
+    ok, why = numeric_check(p, p.solution or "")
+    assert ok, why
+    # a real-constant candidate must FAIL: every jittered point is complex
+    bad, why_bad = numeric_check(p, "def calculate(x):\n    return 5.0")
+    assert not bad, f"wrong candidate passed: {why_bad}"
+
+
 def test_oracle_verify_full() -> None:
     ok, reasons = oracle_verify(_pair(), "def calculate(x):\n    return 2 * x + 1")
     assert ok

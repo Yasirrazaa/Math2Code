@@ -69,7 +69,7 @@ _NOTATION_PATTERNS = [
     ("varphi", r"\\varphi"),
     ("sigma", r"\\sigma"),
     ("log", r"\\log"),
-    ("exp-notation", r"e\^\{?\\-?" ),
+    ("exp-notation", r"e\^\{?\\-?"),
     ("mathbbE", r"\\mathbb\{E\}"),
     ("nabla", r"\\nabla"),
     ("matrix", r"begin\{matrix\}"),
@@ -199,7 +199,9 @@ def main() -> int:
             f"patterns covered ({100 * len(aligned) / max(len(present), 1):.0f}%)"
         )
         print(f"  test patterns : {dict(sorted(test_nt.items()))}")
-        print(f"  pool patterns : {dict(sorted({k: v for k, v in pool_nt.items() if v > 0}.items()))}")
+        print(
+            f"  pool patterns : {dict(sorted({k: v for k, v in pool_nt.items() if v > 0}.items()))}"
+        )
     return 0
 
 

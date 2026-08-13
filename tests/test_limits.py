@@ -63,7 +63,7 @@ def test_limit_gate_holds_for_every_row() -> None:
         assert not truth.has(sp.I)
         truth_val = float(sp.N(truth))
         for tc in r.test_cases:
-            assert abs(float(complex(tc.output).real) - truth_val) < 1e-9
+            assert abs(float(complex(tc.output).real) - truth_val) < 1e-9  # type: ignore[arg-type]
         assert "finite real constant" in r.metadata["family_gate"]
 
 

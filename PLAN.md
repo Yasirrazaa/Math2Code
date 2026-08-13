@@ -24,8 +24,12 @@
 |---|---|---|---|
 | `data/train.json` (competition) | 26,846 | `sympy_exp` + `test_cases[].output` (5 each) | Primary training + GRPO reward target |
 | `data/public_test_new_no_sol_no_out.json` | 1,004 | inputs only (no outputs) | Final eval (with hidden answers) |
-| `data/final/synthetic_data_final.json` | 5,013 | code only, **no test cases** | Clean/deprecate; secondary |
-| `data/results_v14 (1).csv` | 1,004 | — | Your 0.75 baseline submission |
+| ~~`data/final/synthetic_data_final.json`~~ | 5,013 | code only, **no test cases** | Removed in the Aug-2026 Phase-0 cleanup (legacy capstone data) |
+| ~~`data/results_v14 (1).csv`~~ | 1,004 | — | Removed in the Aug-2026 Phase-0 cleanup (stray artifact) |
+
+> **Update (Aug 2026):** the legacy `data/final/` rows and `data/results_v14 (1).csv` were
+> removed from the repo — superseded by the verified competition split
+> (`data/split/*`) and the code-first synthetic pool (`data/synthetic/*`).
 
 **Competition data facts (audited):**
 - `train.json`: all `synthetic: true`, all `output_type: real`; 5 test cases per row, **none missing expected outputs**; complexity 2 (15k) → 5 (1.9k); 8 domains, ~13 equation types (derivative, differential, integration, summation, diophantine, rational, exponential…); **~4k duplicate LaTeX expressions** (dedup required).
@@ -36,7 +40,7 @@
 
 1. **Primary dataset = competition train.json** (deduplicated → ~23k unique LaTeX). Its `sympy_exp` field is the symbolic ground truth — the "oracle" is already embedded.
 2. **Re-sampling for GRPO:** do *not* train against the fixed 5 test cases (memorization). At rollout time, re-derive 3–5 *fresh random numeric inputs* per prompt by substituting into `sympy_exp` (seeded by task_id). Expected outputs are computed from the ground-truth AST — the training-time oracle (see §2).
-3. **Clean or deprecate `data/final/synthetic_data_final.json`:** its solutions are chatty (```python fences + trailing prose) and it has no test cases. Migrate it through the same cleaning pipeline (strip fences/prose, extract code, attach re-sampled test cases) or drop it in favor of competition data.
+3. **Clean or deprecate `data/final/synthetic_data_final.json`:** its solutions are chatty (```python fences + trailing prose) and it has no test cases. Migrate it through the same cleaning pipeline (strip fences/prose, extract code, attach re-sampled test cases) or drop it in favor of competition data. *(Resolved: dropped in the Aug-2026 Phase-0 cleanup.)*
 4. **Extension (Phase 2+, optional):** the code-first `MathOntologyGenerator` (SymPy AST → `sp.latex()` prompt; `max_depth`/`operator_set` curriculum) becomes a *supplementary* generator to cover underrepresented families (complex outputs, ODEs/differential, matrices, piecewise) — validated by the same oracle before entering the pool. Never trust LLM-generated data without sympy verification.
 5. **Versioning:** publish the canonical dataset to **HF Hub** (`datasets.push_to_hub`) — visible to recruiters, single `load_dataset` call in train/eval code. Keep `data/train.json.zip` (7.8 MB) and small files in git; **gitignore the extracted 51 MB `train.json`**.
 

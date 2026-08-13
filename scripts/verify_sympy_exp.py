@@ -22,6 +22,7 @@ Honest caveats:
   unparseable). Empty sympy_exp rows are SKIPPED, not failed.
 - The frozen split files are NEVER modified.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -88,7 +89,9 @@ def main() -> int:
         rows.extend(_load(p))
     if args.limit:
         rows = rows[: args.limit]
-    print(f"verifying {len(rows)} rows (sympy_exp truth) across {[p.name for p in paths]}")
+    print(
+        f"verifying {len(rows)} rows (sympy_exp truth) across {[p.name for p in paths]}"
+    )
 
     report: dict[str, object] = {
         "split_files": [p.name for p in paths],
@@ -135,11 +138,7 @@ def main() -> int:
                     evaluated_expr = expr.doit()
                 got = complex(evaluated_expr.subs(subs).evalf())
                 # Build a string to use outputs_match (it accepts str)
-                got_str = (
-                    f"{got.real}{got.imag:+}j"
-                    if got.imag != 0
-                    else str(got.real)
-                )
+                got_str = f"{got.real}{got.imag:+}j" if got.imag != 0 else str(got.real)
                 ok = outputs_match(got_str, expected)
             except Exception as exc:
                 ok = False
@@ -157,7 +156,11 @@ def main() -> int:
                     )
                 if len(failed_cases) < 3:
                     failed_cases.append(
-                        {"case": ci, "got": got_str[:120], "expected": str(expected)[:120]}
+                        {
+                            "case": ci,
+                            "got": got_str[:120],
+                            "expected": str(expected)[:120],
+                        }
                     )
 
         entry = {
@@ -178,9 +181,7 @@ def main() -> int:
         else:
             report["n_fail_any"] += 1
             t = r.get("equation_type", "?")
-            report["failures_by_type"][t] = (
-                report["failures_by_type"].get(t, 0) + 1
-            )
+            report["failures_by_type"][t] = report["failures_by_type"].get(t, 0) + 1
             if len(report["failures_examples"]) < 20:
                 report["failures_examples"].append(
                     {
@@ -195,7 +196,7 @@ def main() -> int:
         if (idx + 1) % 1000 == 0 or idx == len(rows) - 1:
             pct = 100.0 * (idx + 1) / len(rows)
             print(
-                f"  [{idx+1}/{len(rows)} {pct:.1f}%] "
+                f"  [{idx + 1}/{len(rows)} {pct:.1f}%] "
                 f"sympy_pass={report['n_pass_full']} sympy_fail={report['n_fail_any']} "
                 f"empty={report['rows_skipped_empty']} parse_err={report['rows_skipped_parse_error']}"
             )

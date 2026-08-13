@@ -73,7 +73,9 @@ class DifferentialC1Family(SynthFamily):
             else:
                 q = b * sp.sin(c * _X)
             ode = sp.Eq(sp.Derivative(_YF, _X) + a * _YF, q)
-            sopt = {"low": -2.0, "high": 2.0} if qkind == 2 else {"low": -4.0, "high": 4.0}
+            sopt = (
+                {"low": -2.0, "high": 2.0} if qkind == 2 else {"low": -4.0, "high": 4.0}
+            )
             return ode, [_X, _C1], sopt
         if kind == 2:  # constant-coefficient second-order (homogeneous)
             ode = sp.Eq(

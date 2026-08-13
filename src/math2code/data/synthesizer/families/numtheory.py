@@ -50,6 +50,7 @@ class NumberTheoryFamily(SynthFamily):
         rng = random.Random(int_seed(f"numtheory:{seed}"))
         templates = [("gcd", _gcd_code), ("lcm", _lcm_code)]
         out: list[MathCodePair] = []
+        pool = opts.get("pool")  # shared SandboxPool -> fast truth_code evals
         i = 0
         while len(out) < count * 2 and i < count * 60:
             i += 1
@@ -67,6 +68,7 @@ class NumberTheoryFamily(SynthFamily):
                 sample_kwargs={"ints_only": True, "low": 1, "high": 60},
                 equation_type="number_theory",
                 custom_code=(code, code),  # solution == truth for these families
+                pool=pool,
             )
             out.extend(rows)
         return out[: count * 2]

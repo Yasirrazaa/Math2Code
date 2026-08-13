@@ -103,6 +103,7 @@ class SynthFamily(ABC):
         custom_code: tuple[str, str] | None = None,
         latex_override: list[str] | None = None,
         repr_surface: bool = False,
+        pool: Any | None = None,
     ) -> list[MathCodePair]:
         """One math object -> one row per LaTeX notation variant.
 
@@ -147,20 +148,32 @@ class SynthFamily(ABC):
 
         if custom_code is not None:
             # truth is code: run truth_code in the sandbox contract to get the
-            # expected outputs for the committed test cases (gcd/lcm families)
-            from math2code.sandbox.base import execute_code
+            # expected outputs for the committed test cases (gcd/lcm families).
+            # A shared SandboxPool is ~10x cheaper than a fresh subprocess per
+            # case and runs the cases concurrently (the script passes its pool).
+            from math2code.evaluation.metrics import parse_number
 
             expected: list[complex] = []
-            for inp in inputs:
-                res = execute_code(custom_code[1], inputs=inp)
-                if not res.ok:
-                    return []
-                from math2code.evaluation.metrics import parse_number
+            if pool is not None:
+                res_list = pool.run_many([(custom_code[1], inp) for inp in inputs])
+                for res in res_list:
+                    if not res.ok:
+                        return []
+                    try:
+                        expected.append(parse_number(res.stdout))
+                    except (ValueError, TypeError):
+                        return []
+            else:
+                from math2code.sandbox.base import execute_code
 
-                try:
-                    expected.append(parse_number(res.stdout))
-                except (ValueError, TypeError):
-                    return []
+                for inp in inputs:
+                    res = execute_code(custom_code[1], inputs=inp)
+                    if not res.ok:
+                        return []
+                    try:
+                        expected.append(parse_number(res.stdout))
+                    except (ValueError, TypeError):
+                        return []
         else:
             expected = []
             for inp in inputs:

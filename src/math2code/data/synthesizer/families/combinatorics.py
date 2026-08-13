@@ -35,7 +35,9 @@ _MAX_VALUE = 10**9  # magnitude guard: counts stay float-safe, no AST blowup
 # Builder -> (problem, result, variables, latex | None, vocab, custom_code | None)
 _Builder = Callable[
     [random.Random],
-    tuple[sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None],
+    tuple[
+        sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None
+    ],
 ]
 
 
@@ -47,14 +49,14 @@ def _count_code(fn: str) -> str:
     exactness for catalan/bell at larger n (e.g. catalan(13.0) ->
     742899.9999999999). Sandbox execution with int inputs stays exact.
     """
-    return (
-        "import sympy as sp\n"
-        "def calculate(n):\n"
-        f"    return int(sp.{fn}(int(n)))\n"
-    )
+    return f"import sympy as sp\ndef calculate(n):\n    return int(sp.{fn}(int(n)))\n"
 
 
-def _bell_concrete(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None]:
+def _bell_concrete(
+    rng: random.Random,
+) -> tuple[
+    sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None
+]:
     n = int(rng.randint(3, 12))
     return (
         sp.Function("B")(n),
@@ -66,7 +68,11 @@ def _bell_concrete(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Symbol
     )
 
 
-def _catalan_concrete(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None]:
+def _catalan_concrete(
+    rng: random.Random,
+) -> tuple[
+    sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None
+]:
     n = int(rng.randint(2, 12))
     return (
         sp.Function("C")(n),
@@ -78,7 +84,11 @@ def _catalan_concrete(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Sym
     )
 
 
-def _derangement_concrete(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None]:
+def _derangement_concrete(
+    rng: random.Random,
+) -> tuple[
+    sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None
+]:
     n = int(rng.randint(2, 10))
     return (
         sp.Function("der")(n),
@@ -90,7 +100,11 @@ def _derangement_concrete(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp
     )
 
 
-def _stirling2_concrete(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None]:
+def _stirling2_concrete(
+    rng: random.Random,
+) -> tuple[
+    sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None
+]:
     n = int(rng.randint(4, 12))
     k = int(rng.randint(2, n - 1))  # 1 < k < n: non-degenerate partition count
     value = stirling(n, k, kind=2)
@@ -104,7 +118,11 @@ def _stirling2_concrete(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.S
     )
 
 
-def _central_binomial_concrete(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None]:
+def _central_binomial_concrete(
+    rng: random.Random,
+) -> tuple[
+    sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None
+]:
     n = int(rng.randint(2, 8))
     return (
         sp.Function("binomial")(2 * n, n),
@@ -116,7 +134,11 @@ def _central_binomial_concrete(rng: random.Random) -> tuple[sp.Expr, sp.Expr, li
     )
 
 
-def _binomial_sum_concrete(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None]:
+def _binomial_sum_concrete(
+    rng: random.Random,
+) -> tuple[
+    sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None
+]:
     n = int(rng.randint(2, 10))
     problem = sp.Sum(sp.binomial(n, _K), (_K, 0, n))
     value = problem.doit()  # 2**n by the binomial theorem
@@ -133,7 +155,11 @@ def _binomial_sum_concrete(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[s
     )
 
 
-def _bell_param(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None]:
+def _bell_param(
+    rng: random.Random,
+) -> tuple[
+    sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None
+]:
     code = _count_code("bell")
     return (
         sp.Function("B")(_N),
@@ -145,7 +171,11 @@ def _bell_param(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Symbol], 
     )
 
 
-def _catalan_param(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None]:
+def _catalan_param(
+    rng: random.Random,
+) -> tuple[
+    sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None
+]:
     code = _count_code("catalan")
     return (
         sp.Function("C")(_N),
@@ -157,7 +187,11 @@ def _catalan_param(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Symbol
     )
 
 
-def _binomial_param(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None]:
+def _binomial_param(
+    rng: random.Random,
+) -> tuple[
+    sp.Expr, sp.Expr, list[sp.Symbol], list[str] | None, str, tuple[str, str] | None
+]:
     code = (
         "import sympy as sp\n"
         "def calculate(n):\n"
@@ -171,7 +205,6 @@ def _binomial_param(rng: random.Random) -> tuple[sp.Expr, sp.Expr, list[sp.Symbo
         "binomial",
         (code, code),
     )
-
 
 
 _BUILDERS: list[_Builder] = [
@@ -206,6 +239,7 @@ class CombinatoricsFamily(SynthFamily):
     ) -> list[MathCodePair]:
         rng = random.Random(int_seed(f"combinatorics:{seed}"))
         out: list[MathCodePair] = []
+        pool = opts.get("pool")  # shared SandboxPool -> fast truth_code evals
         i = 0
         while len(out) < count * 2 and i < count * 120:
             i += 1
@@ -238,6 +272,7 @@ class CombinatoricsFamily(SynthFamily):
                 sample_kwargs=sample_kwargs,
                 latex_override=texs,
                 custom_code=custom_code,
+                pool=pool,
             )
             out.extend(rows)
         return out[: count * 2]

@@ -54,11 +54,14 @@ def _recompute(kind: str, p: dict[str, int]) -> float:
         d2 = (p["x2"] - p["x1"]) ** 2 + (p["y2"] - p["y1"]) ** 2
         return float(d2) if kind == "dist_sq" else math.sqrt(d2)
     if kind == "tri_coord":
-        return abs(
-            p["x1"] * (p["y2"] - p["y3"])
-            + p["x2"] * (p["y3"] - p["y1"])
-            + p["x3"] * (p["y1"] - p["y2"])
-        ) / 2.0
+        return (
+            abs(
+                p["x1"] * (p["y2"] - p["y3"])
+                + p["x2"] * (p["y3"] - p["y1"])
+                + p["x3"] * (p["y1"] - p["y2"])
+            )
+            / 2.0
+        )
     if kind == "tri_heron":
         a, b, c = p["a"], p["b"], p["c"]
         s = (a + b + c) / 2.0

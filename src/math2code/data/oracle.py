@@ -26,6 +26,11 @@ import sympy as sp
 from math2code.sandbox import SandboxPool, analyze_code, execute_code
 from math2code.schemas import MathCodePair
 
+try:
+    import numpy as _np
+except ImportError:  # pragma: no cover - numpy is a hard dep; belt & suspenders
+    _np = None  # type: ignore[assignment]
+
 ORACLE_REL_TOL = 1e-5
 ORACLE_ABS_TOL = 1e-8
 
@@ -50,6 +55,47 @@ def _parse_ground_truth(pair: MathCodePair) -> sp.Expr | None:
         return None
     try:
         return sp.sympify(pair.sympy_exp)
+    except Exception:
+        return None
+
+
+def _truth_at_points(
+    expr: sp.Expr, inputs: list[dict[str, Any]]
+) -> list[complex | None] | None:
+    """Ground-truth values at many points, vectorized via numpy lambdify.
+
+    Replaces the per-point `expr.subs(...).evalf()` loop (the parent-side
+    sequential hot spot in `numeric_check`): one vectorized C-speed call
+    covers all points. Returns None when vectorization is not applicable
+    (lambdify failure, numpy absent, an input key missing from the
+    expression's free symbols, or a non-finite vectorized value) — callers
+    fall back to the slow path, whose semantics are unchanged. The non-finite
+    guard matters: numpy returns NaN where sympy yields a finite COMPLEX
+    number (sqrt/log/asin of a negative arg), and silently converting NaN to
+    a skipped point would let wrong candidates pass uncompared.
+    """
+    if _np is None:
+        return None
+    syms = sorted(expr.free_symbols, key=str)
+    try:
+        if syms:
+            f = sp.lambdify(syms, expr, "numpy")
+            cols: dict[str, Any] = {}
+            for s in syms:
+                cols[str(s)] = _np.array([float(p[str(s)]) for p in inputs])
+            vals = f(**cols)
+        else:
+            vals = sp.lambdify([], expr, "numpy")()
+        arr = _np.atleast_1d(vals)
+        if not _np.all(_np.isfinite(arr)):
+            return None  # complex intermediate (or undefined point) -> evalf
+        out: list[complex | None] = []
+        for v in arr:
+            try:
+                out.append(complex(v))
+            except Exception:
+                out.append(None)
+        return out
     except Exception:
         return None
 
@@ -107,13 +153,17 @@ def numeric_check(
         expr = _parse_ground_truth(pair)
         if expr is None:
             return False, "no ground-truth sympy_exp to compare against"
-        gt_complex = []
-        for inp in inputs:
-            subs = {sp.Symbol(k): v for k, v in inp.items()}
-            try:
-                gt_complex.append(complex(expr.subs(subs).evalf()))
-            except Exception:
-                gt_complex.append(None)
+        truth_evals = _truth_at_points(expr, inputs)
+        if truth_evals is not None:
+            gt_complex = truth_evals
+        else:
+            gt_complex = []
+            for inp in inputs:
+                subs = {sp.Symbol(k): v for k, v in inp.items()}
+                try:
+                    gt_complex.append(complex(expr.subs(subs).evalf()))
+                except Exception:
+                    gt_complex.append(None)
 
     # candidate outputs via the sandbox
     if pool is not None:

@@ -30,7 +30,7 @@ None of these are hard to fix. The strategic point: **the task itself is excelle
 | Layer | What's there | Verdict |
 |---|---|---|
 | Task | LaTeX expression → runnable SymPy function (`calculate(...)`) | Strong, demo-able, verifiable |
-| Data | `data/final/synthetic_data_final.json` — 5,013 rows (`task_id`, `latex_expression`, `solution`) | Usable raw material; needs cleaning, test cases, splits |
+| Data | ~~`data/final/synthetic_data_final.json`~~ — 5,013 rows (`task_id`, `latex_expression`, `solution`) | Legacy capstone rows; removed in the Aug-2026 Phase-0 cleanup (superseded by `data/split/*` + `data/synthetic/*`) |
 | Generation | `src/data/generate.py` — Groq llama3-70b + `instructor` + pydantic structured output | Good pattern, tiny scale (3 prompts × 5) |
 | Curation | `src/data/curate.py` — E2B sandbox, keeps only error-free snippets | Right idea, only smoke-level |
 | Training | `src/model/train.py` — Hydra config, LoRA SFT via TRL `SFTTrainer`, W&B | Decent 2024-era SFT; the notebook used a proper isclose-based judge |

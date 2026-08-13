@@ -36,9 +36,9 @@ def _recompute(meta: dict) -> int:
     """Independently recompute the ground truth from the row's metadata."""
     kind = meta["kind"]
     if kind == "interval_intersect":
-        return max(0, min(meta["b"], meta["d"]) - max(meta["a"], meta["c"]))
+        return int(max(0, min(meta["b"], meta["d"]) - max(meta["a"], meta["c"])))
     if kind == "interval_union":
-        return max(meta["b"], meta["d"]) - min(meta["a"], meta["c"])
+        return int(max(meta["b"], meta["d"]) - min(meta["a"], meta["c"]))
     if kind in ("set_union", "set_intersect"):
         sa, sb = set(meta["set_a"]), set(meta["set_b"])
         return len(sa | sb) if kind == "set_union" else len(sa & sb)
@@ -78,7 +78,7 @@ def test_contract_shape() -> None:
         for tc in r.test_cases:
             assert tc.output is not None
             assert abs(complex(parse_number(str(tc.output))).imag) < 1e-12
-            assert float(tc.output) == int(float(tc.output)), "exact integer output"
+            assert float(tc.output) == int(float(tc.output)), "exact integer output"  # type: ignore[arg-type]
     assert kinds == _KINDS, "all five kinds must appear across a larger draw"
 
 
@@ -92,16 +92,14 @@ def test_committed_outputs_recomputed() -> None:
         expected = _recompute(r.metadata)
         assert expected >= 0, r.task_id
         for tc in r.test_cases:
-            assert float(tc.output) == float(expected), r.task_id
+            assert float(tc.output) == float(expected), r.task_id  # type: ignore[arg-type]
 
 
 def test_gate_and_latex_surfaces() -> None:
     rows = _gen(12)
     assert rows
     for r in rows:
-        assert "recomputed from the set/interval endpoints" in r.metadata[
-            "family_gate"
-        ]
+        assert "recomputed from the set/interval endpoints" in r.metadata["family_gate"]
         # ground truth sympy_exp must be an exact finite Integer
         truth = sp.sympify(r.sympy_exp or "")
         assert isinstance(truth, sp.Integer), r.sympy_exp
@@ -118,7 +116,7 @@ def test_solution_matches_truth() -> None:
     for r in _gen(6):
         res = execute_code(r.solution or "", inputs={})
         assert res.ok, res.stderr
-        assert abs(float(res.stdout) - float(r.test_cases[0].output)) < 1e-9
+        assert abs(float(res.stdout) - float(r.test_cases[0].output)) < 1e-9  # type: ignore[arg-type]
 
 
 def test_oracle_verification() -> None:

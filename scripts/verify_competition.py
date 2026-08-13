@@ -19,6 +19,7 @@ Honest caveats:
   committed (solution, test_cases) PAIR for internal consistency.
 - Sympy_exp is a separate truth cross-check (verify_sympy_exp.py).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -48,20 +49,26 @@ def main() -> int:
     ap.add_argument("--timeout", type=int, default=10, help="per-spawn timeout (s)")
     ap.add_argument("--limit", type=int, default=None, help="cap rows for smoke test")
     ap.add_argument(
-        "--skip-rows", type=int, default=0,
+        "--skip-rows",
+        type=int,
+        default=0,
         help="skip the first N rows of the concatenated dataset (for resume after a "
-             "previous run was killed mid-way). Use with the same --out and --split "
-             "as the previous run. Combine with --checkpoint-in to safely merge partials.",
+        "previous run was killed mid-way). Use with the same --out and --split "
+        "as the previous run. Combine with --checkpoint-in to safely merge partials.",
     )
     ap.add_argument(
-        "--checkpoint-in", type=str, default=None,
+        "--checkpoint-in",
+        type=str,
+        default=None,
         help="path to a previous partial report JSON (with 'rows' list). Rows whose "
-             "task_id appears in the prior report are skipped. Combined with --skip-rows.",
+        "task_id appears in the prior report are skipped. Combined with --skip-rows.",
     )
     ap.add_argument(
-        "--checkpoint-every", type=int, default=500,
+        "--checkpoint-every",
+        type=int,
+        default=500,
         help="write the partial report every N rows (default 500) so a kill never "
-             "loses more than N rows of work. Set 0 to disable.",
+        "loses more than N rows of work. Set 0 to disable.",
     )
     ap.add_argument(
         "--out", default=str(SPLIT / "verify_report.json"), help="report path"
@@ -221,9 +228,7 @@ def main() -> int:
             else:
                 report["n_fail_any"] += 1
                 t = r.get("equation_type", "?")
-                report["failures_by_type"][t] = (
-                    report["failures_by_type"].get(t, 0) + 1
-                )
+                report["failures_by_type"][t] = report["failures_by_type"].get(t, 0) + 1
                 c = str(r.get("complexity"))
                 report["failures_by_complexity"][c] = (
                     report["failures_by_complexity"].get(c, 0) + 1
@@ -246,14 +251,12 @@ def main() -> int:
             if (idx + 1) % 500 == 0 or idx == len(rows) - 1:
                 pct = 100.0 * (idx + 1) / len(rows)
                 print(
-                    f"  [{idx+1}/{len(rows)} {pct:.1f}%] pass={report['n_pass_full']} "
+                    f"  [{idx + 1}/{len(rows)} {pct:.1f}%] pass={report['n_pass_full']} "
                     f"fail={report['n_fail_any']}"
                 )
 
             # Periodic checkpoint so a kill loses at most --checkpoint-every rows.
-            if args.checkpoint_every and (
-                (idx + 1) % args.checkpoint_every == 0
-            ):
+            if args.checkpoint_every and ((idx + 1) % args.checkpoint_every == 0):
                 report["rows_checked"] = len(report["rows"])
                 checkpoint()
                 print(f"  [checkpoint] wrote {len(report['rows'])} rows to {out_path}")

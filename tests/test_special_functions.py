@@ -49,7 +49,7 @@ def test_contract_shape() -> None:
         assert r.output_type == "real"
         for tc in r.test_cases:
             assert tc.output is not None
-            assert math.isfinite(float(tc.output))
+            assert math.isfinite(float(tc.output))  # type: ignore[arg-type]
             assert abs(complex(parse_number(str(tc.output))).imag) < 1e-12
 
 
@@ -59,7 +59,7 @@ def test_gated_flag_and_finiteness() -> None:
     for r in rows:
         assert r.metadata["gated"] is True
         for tc in r.test_cases:
-            assert math.isfinite(float(tc.output))
+            assert math.isfinite(float(tc.output))  # type: ignore[arg-type]
 
 
 def test_both_modes_present() -> None:
@@ -79,7 +79,7 @@ def test_committed_outputs_match_ground_truth() -> None:
             truth = sp.sympify(r.sympy_exp or "")
             assert truth.is_finite
             expected = float(sp.N(truth))
-            assert abs(float(r.test_cases[0].output) - expected) < 1e-9, (
+            assert abs(float(r.test_cases[0].output) - expected) < 1e-9, (  # type: ignore[arg-type]
                 r.task_id,
                 r.sympy_exp,
                 r.test_cases[0].output,
@@ -87,7 +87,7 @@ def test_committed_outputs_match_ground_truth() -> None:
         else:
             res = execute_code(r.truth_code or "", inputs={})
             assert res.ok, res.stderr
-            assert abs(float(res.stdout) - float(r.test_cases[0].output)) < 1e-9, (
+            assert abs(float(res.stdout) - float(r.test_cases[0].output)) < 1e-9, (  # type: ignore[arg-type]
                 r.task_id,
                 res.stdout,
                 r.test_cases[0].output,
@@ -107,7 +107,7 @@ def test_solution_matches_truth() -> None:
     for r in _gen(5):
         res = execute_code(r.solution or "", inputs={})
         assert res.ok, res.stderr
-        assert abs(float(res.stdout) - float(r.test_cases[0].output)) < 1e-9
+        assert abs(float(res.stdout) - float(r.test_cases[0].output)) < 1e-9  # type: ignore[arg-type]
 
 
 def test_oracle_verification() -> None:

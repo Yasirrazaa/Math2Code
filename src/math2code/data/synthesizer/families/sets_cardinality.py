@@ -84,12 +84,18 @@ class SetsCardinalityFamily(SynthFamily):
             tex = rf"\left|[{a},{b}] \cup [{c},{d}]\right|"
         elif kind in ("set_union", "set_intersect"):
             # NOTE: sp.FiniteSet has no `.cardinality` — use len(...) directly.
-            elems_a = tuple(sorted(rng.sample(_SET_UNIVERSE, rng.randint(*_SET_SIZES[:2]))))
-            elems_b = tuple(sorted(rng.sample(_SET_UNIVERSE, rng.randint(*_SET_SIZES[:2]))))
+            elems_a = tuple(
+                sorted(rng.sample(_SET_UNIVERSE, rng.randint(*_SET_SIZES[:2])))
+            )
+            elems_b = tuple(
+                sorted(rng.sample(_SET_UNIVERSE, rng.randint(*_SET_SIZES[:2])))
+            )
             sa, sb = set(elems_a), set(elems_b)
             value = len(sa | sb) if kind == "set_union" else len(sa & sb)
             meta.update(set_a=list(elems_a), set_b=list(elems_b))
-            tex = _set_tex(elems_a, elems_b, r"\cup" if kind == "set_union" else r"\cap")
+            tex = _set_tex(
+                elems_a, elems_b, r"\cup" if kind == "set_union" else r"\cap"
+            )
         else:  # membership: Iverson bracket [x ∈ [a,b]] ∈ {0, 1}
             x = rng.randint(0, _ENDPOINT_HIGH)
             a = rng.randint(0, _ENDPOINT_HIGH)
