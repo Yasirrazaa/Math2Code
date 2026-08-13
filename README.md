@@ -84,7 +84,7 @@ src/math2code/
 uv pip install -e ".[dev]"
 make splits      # rebuild frozen split from data/train.json
 make eval-gold   # gold solutions must score 1.0 on the test split
-make test        # 80 tests: metric, sandbox, oracle, rewards, runner, baselines, GRPO, E2B
+make test        # 209 tests: metric, sandbox, oracle, rewards, runner, baselines, GRPO, E2B
 ```
 
 The zero-cost `parse_latex` baseline needs the optional `baseline` extra
@@ -97,6 +97,28 @@ make baselines   # measured rows for the table below
 make analyze     # per-equation-type breakdown of the latest baseline
 make plots       # regenerate the figures below
 ```
+
+## Dataset on the Hugging Face Hub
+
+The frozen split and the oracle-verified synthetic pool (14,701 rows / 26
+family pools) are published as a dataset with two configs:
+
+```python
+from datasets import load_dataset
+split = load_dataset("Yasirrazaa/math2code-data", "split")      # train/validation/test
+synth = load_dataset("Yasirrazaa/math2code-data", "synthetic")  # verified pool
+```
+
+Stage + validate locally (no network), then push with:
+
+```bash
+python scripts/publish_hf.py                    # stage + validate into hf_staging/
+HF_TOKEN=hf_... python scripts/publish_hf.py --push
+```
+
+The publisher schema-normalizes the synthetic pool for one loadable Arrow
+table (canonical string outputs, JSON-string `input`/`metadata`) — the on-disk
+source files stay byte-identical; see the dataset card for the full contract.
 
 ## Training + benchmarking (GPU / API budget)
 
@@ -151,7 +173,10 @@ supports complex via `parse_number`'s `re±imj` handling).
 - `make eval-gold` → `per-problem accuracy: 1.0000 (397/397)` on the frozen split
 - `python scripts/smoke_pool.py` → `10,000 snippets in 25.7s → 389 exec/s, 0 failures`
 - oracle verifies 200/200 gold solutions on fresh jittered inputs
-- CI: ruff, mypy, 80 pytest tests, package build, Docker build, split-integrity check
+- parallel synthesis: `python scripts/generate_verified_data.py --families ode --count 350 --workers 8`
+  shards generation across processes (multi-family runs stay byte-identical to `--workers 1`) and
+  `SandboxPool.run_many` batches oracle verification concurrently
+- CI: ruff, mypy, 209 pytest tests, package build, Docker build, split-integrity check
 
 See `PLAN.md` for the full blueprint and `docs/ENGINEERING_REVIEW.md` for the
 original codebase audit.
