@@ -249,6 +249,19 @@ class SandboxPool:
                 )
         return outputs, errors
 
+    def batch_execute(
+        self,
+        tasks: list[tuple[str, dict[str, Any]]],
+    ) -> list[base.ExecutionResult]:
+        """Alias for `run_many`: executes many (code, inputs) tasks concurrently.
+
+        Used by RLVR rollouts to grade multiple completions in parallel
+        (see `model/rewards.py`: execution-equivalence verifier, inspired by
+        Databricks BIRD SQL paper). A bounded in-flight window (8 x n_workers)
+        keeps memory flat; self-healing restarts on BrokenProcessPool.
+        """
+        return self.run_many(tasks)
+
     def close(self) -> None:
         self._pool.shutdown(wait=False, cancel_futures=True)
 

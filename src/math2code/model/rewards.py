@@ -4,7 +4,8 @@ All rewards are computed from observable facts: sandbox execution results,
 the presence of tool-use tokens, string markers, and code complexity. There is
 no learned/LLM reward anywhere.
 
-Design (per PLAN.md §Rewards):
+Design (per PLAN.md §Rewards; execution-equivalence verifier inspired by
+Databricks BIRD SQL / RLVR literature):
   R_terminal  +2.0   Monte Carlo oracle: final code correct on all (resampled) cases
   R_exec      +1.0 / -0.25  per <execute> block that ran cleanly vs errored
   R_tool      +0.1   at least one tool-use (execute) attempt

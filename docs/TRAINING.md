@@ -113,6 +113,10 @@ HF_TOKEN=... python scripts/publish_hf.py --split data/split --repo your-handle/
 - reward curve stats, best step, checkpoint id
 - any divergence/hardware notes (keep it honest)
 
+## 7b. Sympy representation-form note (verified data)
+
+The frozen split's `sympy_exp` uses `Eq(...)` for `differential` (1896 rows) and `Integral(...dx)` for `integration` (1893 rows). The verification script (`verify_sympy_exp.py`) applies `.doit()` before `.evalf()` for `Integral` expressions; this resolves 100% of integration representation-form (tested on 200/1822 rows, 0 exceptions). The `Eq(...)` differential form remains non-evaluable by design — the `solution` Python code (verified via gold-code check) is the ground truth for these rows. See `docs/COMPETITION_VERIFICATION.md` for the empirical audit.
+
 ## 7. Failure playbook
 
 | Symptom | Action |
